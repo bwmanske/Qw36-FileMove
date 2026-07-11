@@ -1,4 +1,4 @@
-# FileMove v1.2.0 — User Guide
+# FileMove v1.3.0 — User Guide
 
 ## Overview
 
@@ -15,19 +15,19 @@ FileMove is a compact Windows utility that stores named destination groups for f
 3. Left-click the **New / Tools** header to create your first group
 4. Enter a group name (at least 3 letters, max 200 characters)
 5. Add one or more destination folder paths
-6. Click **Save**
+6. Click **OK**
 
 ### Creating a Group
 
 1. Left-click **New / Tools** header
 2. Enter a unique group name
-3. Click **Add** to add destination folders
+3. Click **Add Destination** to add destination folders
 4. Each destination shows a status icon:
    - **Green check** — Directory exists
    - **Red X** — Directory missing (app can create it)
    - **Orange question** — State undetermined (e.g., busy network drive)
 5. At least one destination is required
-6. Click **Save**
+6. Click **OK**
 
 ## Moving Files
 
@@ -69,6 +69,12 @@ FileMove is a compact Windows utility that stores named destination groups for f
 | Left-click | Open group editor (create new group) |
 | Right-click | Context menu: Queue Window, Status, Settings, Search, About |
 
+The **Queue Window** menu label shows the current queued destination count in parentheses.
+
+### Title Bar
+
+The title bar shows the app name followed by the active JSON file base name in parentheses (e.g., `FileMove (FileMove)`).
+
 ### Group List
 
 - Each row displays only the group name
@@ -87,18 +93,19 @@ FileMove is a compact Windows utility that stores named destination groups for f
 Used for creating and editing groups. Contains:
 - **Name** field (3-200 characters, must contain letters)
 - **Destination list** with per-row status icons
-- **Add** / **Delete** buttons for destinations
-- **Save** / **Cancel** buttons
+- **Add Destination** / **Delete Destination** buttons
+- **OK** / **Cancel** buttons
 
 ### Status Window
 
 Accessed via `New / Tools` > `Status`. Shows:
 - **Active Files**: Current JSON and `.log` file paths
-- **Open** button to launch the log file in the default editor
+- **Open** button on the LOG line to launch the log file in the default editor
 - **JSON file list**: All `.json` files in the data directory
 - **Open Selected**: Switch to the selected JSON file
 - **New**: Create a new JSON file (base name only)
-- **Queue Status**: Queued/Processed counts, Worker State, Pause/Resume button
+- **Queue Status**: `Queued / Processed:` counts, Worker State, Pause/Resume button
+- **Close** button
 
 The Status window closes automatically after successfully opening or creating a JSON file.
 
@@ -108,6 +115,10 @@ Accessed via `New / Tools` > `Queue Window`. Non-modal window showing:
 - All destination file paths currently queued or in progress
 - Live-updating list as files are added and processed
 - Current queued count in the heading
+- **Pause / Resume** button in the heading to toggle the worker thread pause state
+- **Delete** button — removes selected entries from the queue (enabled only during Manual Pause, requires at least one selection)
+- **Empty** button — removes all entries from the queue with a confirmation dialog (enabled only during Manual Pause)
+- **Close** button
 
 ### Settings Window
 
@@ -129,9 +140,19 @@ Accessed via `New / Tools` > `Settings`. Contains:
 - Last Location
 
 **Options** (checkboxes):
-- Enable directory moves — Recursively move directories and their contents
-- Enable sidecar files — Create `.filemove-queued` marker files
-- Hide queued source files — Mark source files as hidden while queued
+- Move directories with subdirectories and files — Recursively move directories and their contents
+- Preserve directory structure at destination — Preserve the source directory name and subdirectory structure under each destination (dependent on directory moves being enabled)
+- Create empty directories — Also create empty subdirectories at the destination (dependent on preserve directory structure being enabled)
+- Create .filemove-queued sidecar files — Create hidden `.filemove-queued` marker files for queued sources
+- Experimental: mark queued source files as hidden — Mark source files as hidden while queued
+
+### Search Window
+
+Accessed via `New / Tools` > `Search`. Modal dialog containing:
+- Text input box at the top for typing a search string
+- Listbox below that filters group names in real time as you type (case-insensitive)
+- Double-click a group name to select it — the main window scrolls to that group and highlights it
+- **Close** button at the bottom-right
 
 ### About Window
 
@@ -207,7 +228,7 @@ If you close FileMove while files are being processed:
 |---|---|
 | **Cancel Shutdown** | Returns to app, continues processing |
 | **Finish Current File And Exit** | Completes current file, then exits |
-| **Cancel Active File And Exit** | Stops immediately, cleans up partial files |
+| **Cancel Active File And Exit Immediately** | Stops immediately, cleans up partial files |
 
 ## Log File
 
