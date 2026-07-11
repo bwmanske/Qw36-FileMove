@@ -1,0 +1,11 @@
+#define IDR_MAINICON          101
+#define IDR_ABOUT_IMAGE       201
+#define IDR_GREEN_CHECK       202
+#define IDR_RED_X             203
+#define IDR_ORANGE_QUESTION   204
+
+IDR_MAINICON ICON "@FILEMOVE_ASSETS_DIR@/icons/FileMove-icon.ico"
+IDR_ABOUT_IMAGE RCDATA "@FILEMOVE_ASSETS_DIR@/images/about-image.png"
+IDR_GREEN_CHECK RCDATA "@FILEMOVE_ASSETS_DIR@/images/green-check.png"
+IDR_RED_X RCDATA "@FILEMOVE_ASSETS_DIR@/images/red-x.png"
+IDR_ORANGE_QUESTION RCDATA "@FILEMOVE_ASSETS_DIR@/images/orange-question.png"
