@@ -7,13 +7,13 @@
 `CMakeLists.txt` defines the project with the following settings:
 
 - **Minimum CMake version**: 3.10
-- **Project version**: 1.2.0
+- **Project version**: 1.3.0
 - **C++ standard**: C++17 (required)
 - **Executable type**: WIN32 subsystem (no console on normal launch)
 
 ```cmake
 cmake_minimum_required(VERSION 3.10)
-project(FileMove VERSION 1.2.0 LANGUAGES CXX)
+project(FileMove VERSION 1.3.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 ```
@@ -64,6 +64,7 @@ add_executable(test_harness
 | `oleaut32` | OLE automation support |
 | `shell32` | Shell utilities, file operations, drag-and-drop (`HDROP`, `DragQueryFileW`) |
 | `comctl32` | Common controls (buttons, listboxes, edit controls) |
+| `dwmapi` | Desktop Window Manager (DWM composition for window theming) |
 
 ### Compile Definitions
 
@@ -72,8 +73,8 @@ add_executable(test_harness
 | `UNICODE` / `_UNICODE` | Wide-character API throughout |
 | `WIN32_LEAN_AND_MEAN` | Exclude rarely-used Windows headers |
 | `NOMINMAX` | Prevent min/max macro conflicts |
-| `FILEMOVE_VERSION` | Injected project version string (`"1.2.0"`) |
-| `FILEMOVE_BUILD_DATE` | Compiler `__DATE__ __TIME__` macro |
+| `FILEMOVE_VERSION` | Injected project version string (`"1.3.0"`) |
+| `FILEMOVE_BUILD_DATE_STR` | Generated at build time via PowerShell custom target into `GeneratedBuildConfig.h` |
 
 ### Embedded Resources
 
@@ -123,7 +124,7 @@ FileMove/
 │   │       ├── settings.h/cpp        # (Phase 5) Settings window
 │   │       ├── queue_window.h/cpp    # (Phase 5) Queue window
 │   │       ├── search.h/cpp          # (Phase 5) Search dialog
-│   │       ├── shutdown.h/cpp        # (Phase 5) Shutdown prompt
+│   │       ├── conflict_dialog.h/cpp # (Phase 5) File conflict dialog
 │   │       └── new_file.h/cpp        # (Phase 5) New JSON file dialog
 │   ├── data/
 │   │   ├── json_parser.h/cpp         # (Phase 2) JSON read/write
@@ -157,7 +158,9 @@ FileMove/
 │       └── orange-question.png       # Directory undetermined status (embedded at build)
 └── specs/
     ├── FileMove-spec-v1.2.0.md
-    └── FileMove-mockups-v1.2.0.md
+    ├── FileMove-spec-v1.3.0.md
+    ├── FileMove-mockups-v1.2.0.md
+    └── FileMove-mockups-v1.3.0.md
 ```
 
 ## Phase 1: Entry Point & Window Scaffold
@@ -318,6 +321,8 @@ struct AppSettings {
     int windowLeft = 0;
     int windowTop = 0;
     bool enableDirectoryMoves = false;
+    bool preserveDirectoryStructure = false;
+    bool createEmptyDirectories = false;
     bool enableSidecarFiles = false;
     bool hideQueuedSourceFiles = false;
 };
@@ -524,7 +529,7 @@ The main application window with pinned header, group list, and status bar.
 - `IDM_QUEUE_WINDOW` — Creates or foregrounds modeless `QueueWindow`
 - `IDM_STATUS` — Opens modal `StatusDialog` with JSON file switching callback
 - `IDM_SETTINGS` — Opens modal `SettingsDialog`, saves to JSON on OK, refreshes group list
-- `IDM_SEARCH` — Opens modal `SearchDialog`, filters group list by substring match
+- `IDM_SEARCH` — Clears any existing group highlight, opens modal `SearchDialog` with real-time filtered listbox; on selection, scrolls to and highlights the group
 - `IDM_ABOUT` — Opens modal `AboutDialog`
 - `IDM_EDIT` — Opens `GroupEditorDialog` pre-populated with selected group
 - `IDM_DELETE` — Confirms with `MessageBoxW`, removes group, saves JSON, refreshes list
@@ -603,14 +608,14 @@ Modal About window showing build information.
 **Layout:**
 - Centered 128x128 image from `assets/images/about-image.png`
 - "Build Information" header
-- "Version: 1.2.0" (left) and "Built On: DATE TIME" (right) on same line
+- "Version: 1.3.0" (left) and "Built On: DATE TIME" (right) on same line
 - "Command Line:" followed by current run's arguments
 - Description text
 
 **Behavior:**
 - Dismisses on any click or key press
-- Uses GDI+ `Image::FromFile` to render the about image
-- `__DATE__` and `__TIME__` macros provide build timestamp
+- Uses `LoadEmbeddedPng(IDR_ABOUT_IMAGE)` to render the about image from embedded `RCDATA` resource
+- Build date/time provided by `FILEMOVE_BUILD_DATE_STR` from `GeneratedBuildConfig.h` (generated at build time via PowerShell custom target)
 
 ### `src/window/dialogs/status.h/cpp`
 
@@ -643,7 +648,7 @@ Modal Settings window for sort order, placement, and options.
 - **Sort Order:** 6 radio buttons in 2 columns (MRU, LRU, AZ, ZA, AF, AL)
 - **Placement:** 5 radio buttons (UL, UR, LL, LR, Last Location)
 - **Startup Preview:** Read-only display of saved size and position
-- **Options:** 3 checkboxes (Directory Moves, Sidecar Files, Hidden Source)
+- **Options:** 5 checkboxes (Directory Moves, Preserve Directory Structure, Create Empty Directories, Sidecar Files, Hidden Source)
 - **Bottom buttons:** "OK" and "Cancel"
 
 **Behavior:**
@@ -655,7 +660,7 @@ Modal Settings window for sort order, placement, and options.
 **Button IDs:**
 - Sort: `IDM_SORT_MRU` (3001) through `IDM_SORT_AL` (3006)
 - Placement: `IDM_PLACEMENT_UL` (3010) through `IDM_PLACEMENT_LAST` (3014)
-- Options: `IDM_OPT_DIRECTORY_MOVES` (3020) through `IDM_OPT_HIDDEN_SOURCE` (3022)
+- Options: `IDM_OPT_DIRECTORY_MOVES` (3020) through `IDM_OPT_HIDDEN_SOURCE` (3024)
 
 ### `src/window/dialogs/group_editor.h/cpp`
 
@@ -691,28 +696,50 @@ Modeless Queue window showing currently queued destination file paths.
 
 **Layout:**
 - Title bar shows "Queue (N)" with current count
-- Heading: "Queued Destinations (N)"
+- Heading: "Queued Destinations (N)" with Pause/Resume button
 - Listbox of destination file paths
+- **Delete** button — removes selected entries (enabled only during Manual Pause)
+- **Empty** button — removes all entries with confirmation (enabled only during Manual Pause)
+- **Close** button
 
 **Behavior:**
 - Remains open while main window continues accepting drops
 - `UpdateList(destinations)` refreshes the list and title
 - Global instance `gQueueWindow` allows access from anywhere
 - Created once, subsequent menu clicks bring it to foreground
+- Pause/Resume toggles worker thread state; button text switches between "Pause" and "Resume"
+- Delete/Empty buttons are disabled when worker is active or idle; enabled only during Manual Pause
 
 ### `src/window/dialogs/search.h/cpp`
 
 Modal Search dialog for filtering groups by name.
 
 **Layout:**
-- "Search Groups" label
-- Edit control for search text
-- "OK" and "Cancel" buttons
+- Text input box at the top for typing a search string
+- Listbox below that displays all loaded group names
+- **Close** button at the bottom-right
 
 **Behavior:**
-- Returns search text on OK, empty string on Cancel
-- Main window filters `gAppData.groups` by substring match and refreshes group list
-- Initial text can be provided (e.g., previous search)
+- As the user types, the listbox is filtered in real time to show only groups whose name contains the typed string (case-insensitive)
+- If no groups match, the listbox is empty
+- Double-clicking a group name closes the dialog and returns the selected name
+- The main window scrolls to the selected group and highlights it with system highlight color
+- The dialog is not resizable
+
+### `src/window/dialogs/conflict_dialog.h/cpp`
+
+Modal dialog shown when a destination file already exists during a file move.
+
+**Layout:**
+- Source and destination file paths
+- **Replace** — Overwrites the existing destination file
+- **Keep Both** — Renames the new file with `(1)`, `(2)`, etc. before the extension
+- **Skip** — Skips this destination; source file remains in place
+
+**Behavior:**
+- Invoked by the worker thread via `ConflictCallback` for each conflicting destination
+- Custom-drawn with GDI+ background and text rendering
+- Returns the user's choice to the worker thread, which acts accordingly
 
 ### `src/window/dialogs/new_file.h/cpp`
 
@@ -896,9 +923,9 @@ Each dialog uses its own ID range to avoid conflicts:
 | Group Menu | 2001-2003 | Use Clipboard, Edit, Delete |
 | Settings | 3001-3030 | Sort radios, Placement radios, Options, OK/Cancel |
 | Status | 4001-4004 | Open Log, Pause/Resume, New, Open Selected |
-| Queue | 5001 | (placeholder) |
+| Queue | 5001-5004 | Pause/Resume, Delete, Empty, Close |
 | Group Editor | 6001-6004 | Add/Delete Dest, OK/Cancel |
-| Search | 7001-7002 | OK/Cancel |
+| Search | 7001 | Close |
 | New File | 8001-8002 | OK/Cancel |
 
 ### JSON Library Integration
@@ -950,20 +977,20 @@ Use in `WM_PAINT` or custom control drawing:
 
 ```cpp
 Graphics graphics(hdc);
-Image* image = Image::FromFile(L"assets\\images\\green-check.png");
+Image* image = LoadEmbeddedPng(hInstance, IDR_GREEN_CHECK);
 graphics.DrawImage(image, x, y, width, height);
 delete image;
 ```
 
 ### Status Icons
 
-Three-state icons loaded from `assets/images/` at runtime via GDI+ `Image::FromFile`:
+Three-state icons embedded as `RCDATA` resources and loaded at runtime via `LoadEmbeddedPng()`:
 
-| File | State | Tooltip Symbol |
-|---|---|---|
-| `green-check.png` | Directory Exists | `✓` |
-| `red-x.png` | Directory Missing | `X` |
-| `orange-question.png` | Directory Undetermined | `?` |
+| Resource ID | File | State | Tooltip Symbol |
+|---|---|---|---|
+| `IDR_GREEN_CHECK` (202) | `green-check.png` | Directory Exists | `✓` |
+| `IDR_RED_X` (203) | `red-x.png` | Directory Missing | `X` |
+| `IDR_ORANGE_QUESTION` (204) | `orange-question.png` | Directory Undetermined | `?` |
 
 Icons are used in:
 - Group editor destination rows
@@ -992,14 +1019,14 @@ cmake --build build --config Release
 
 ### Application Icon Integration
 
-The application icon (`FileMove-icon.ico`) is loaded at runtime from the assets directory relative to the executable:
+The application icon (`FileMove-icon.ico`) is embedded as a standard Windows `ICON` resource and loaded at runtime:
 
-1. `MainWindow::Create()` resolves the executable directory via `GetModuleFileNameW()`
-2. Icon loaded via `LoadImageW()` with `LR_LOADFROMFILE` at 32x32 and 16x16
-3. Assigned to `WNDCLASSEXW.hIcon` and `hIconSm` before `RegisterClassExW()`
-4. Also set explicitly via `WM_SETICON` after window creation for taskbar/alt-tab
+1. Icon loaded via `LoadEmbeddedIcon(hInstance, 32)` and `LoadEmbeddedIcon(hInstance, 16)` from the embedded `ICON` resource
+2. Assigned to `WNDCLASSEXW.hIcon` and `hIconSm` before `RegisterClassExW()`
+3. Also set explicitly via `WM_SETICON` after window creation for taskbar/alt-tab
+4. Displays correctly in Windows Explorer, taskbar, title bar, and Alt-Tab switcher
 
-The executable directory (`mExeDir`) is stored as a member variable and used by all dialogs to locate assets (icons, images).
+All dialogs use `LoadEmbeddedIcon()` for their window icons. No external asset files are needed at runtime.
 
 ### 3-State Icon Rendering
 
@@ -1009,7 +1036,7 @@ The executable directory (`mExeDir`) is stored as a member variable and used by 
 
 **Group Editor Destination List:**
 - Owner-draw ListBox (`LBS_OWNERDRAWFIXED`) with custom `WM_MEASUREITEM` and `WM_DRAWITEM` handlers
-- Status icons loaded as GDI+ `Image*` objects from PNG files (`green-check.png`, `red-x.png`, `orange-question.png`)
+- Status icons loaded as GDI+ `Image*` objects from embedded `RCDATA` resources via `LoadEmbeddedPng()`
 - `OnDrawItem()` renders icons via `Graphics::DrawImage()` at 16x16, followed by text via `DrawTextW()`
 - Icons stored as `void*` in header (GDI+ not available in header scope), cast to `Image*` in `.cpp`
 - Proper cleanup in `UnloadStatusIcons()` via destructor
@@ -1055,11 +1082,7 @@ Implementation:
 
 ### Asset Path Resolution
 
-All asset paths are resolved relative to the executable directory:
-- `mExeDir` computed once in `MainWindow::Create()` via `GetModuleFileNameW()`
-- Icons: `mExeDir + "\\assets\\icons\\FileMove-icon.ico"`
-- Images: `mExeDir + "\\assets\\images\\"` (about-image, status icons)
-- CMake `POST_BUILD` command copies `assets/` to build output directory
+All assets are embedded into the executable at build time via a Windows resource script (`.rc`). No external `assets/` folder is needed at runtime. See the Embedded Resources section for details.
 
 ## Unit Tests
 
