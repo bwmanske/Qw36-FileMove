@@ -1,4 +1,4 @@
-# FileMove v1.2.0 — Building Guide
+# FileMove v1.3.0 — Building Guide
 
 ## Prerequisites
 
@@ -100,6 +100,7 @@ ctest -C Release
 | `shell32` | Shell file operations |
 | `shlwapi` | Lightweight shell utilities |
 | `comctl32` | Common controls |
+| `dwmapi` | Desktop Window Manager (DWM composition for window theming) |
 
 ## Third-Party Dependencies
 
@@ -126,7 +127,7 @@ FileMove/
 │   │       ├── group_editor.h/cpp
 │   │       ├── queue_window.h/cpp
 │   │       ├── search.h/cpp
-│   │       ├── shutdown.h/cpp
+│   │       ├── conflict_dialog.h/cpp
 │   │       └── new_file.h/cpp
 │   ├── data/
 │   │   ├── json_parser.h/cpp
@@ -136,6 +137,9 @@ FileMove/
 │   │   └── worker_thread.h/cpp
 │   ├── drag_drop/
 │   │   └── drop_target.h/cpp
+│   ├── resources/
+│   │   ├── resource_ids.h
+│   │   └── resource_loader.h/cpp
 │   └── utils/
 │       ├── cmdline_parser.h/cpp
 │       └── logging.h/cpp
