@@ -1,8 +1,8 @@
-# FileMove v1.2.0 — Testing Guide
+# FileMove v1.3.0 — Testing Guide
 
 ## Unit Tests
 
-The test harness (`tests/test_harness.cpp`) provides 189 unit tests across four modules. Tests run as a console application with no external dependencies.
+The test harness (`tests/test_harness.cpp`) provides 308 unit tests across ten modules. Tests run as a console application with no external dependencies.
 
 ### Running Tests
 
@@ -23,18 +23,18 @@ ctest -C Release
 A simple inline test framework is used. Each test:
 - Sets up test fixtures (temp files, directories, data structures)
 - Executes the function under test
-- Validates results with `TEST_CHECK()` macros
+- Validates results with `ASSERT_*` macros
 - Cleans up fixtures in a teardown block
 
 Test output format:
 ```
-[PASS] TestName
-[FAIL] TestName — Expected X, got Y
-```
-
-Summary:
-```
-Results: 189 passed, 0 failed, 189 total
+FileMove v1.3.0 - Unit Tests
+==============================
+Testing cmdline_parser...
+  cmdline_parser tests done.
+...
+==============================
+Results: 308 passed, 0 failed
 ```
 
 ### Module: cmdline_parser (45 tests)
@@ -63,7 +63,7 @@ Results: 189 passed, 0 failed, 189 total
 | `EnsureDirectoryExists` recursive creation | 2 |
 | `EnumerateDirectoryFiles` recursive enumeration | 1 |
 
-### Module: json_parser (30 tests)
+### Module: json_parser (29 tests)
 
 | Category | Tests |
 |---|---|
@@ -73,8 +73,8 @@ Results: 189 passed, 0 failed, 189 total
 | Malformed JSON returns false | 3 |
 | Legacy `DestinationPath` migration | 4 |
 | `GenerateGroupId` uniqueness | 4 |
-| `GetIsoTimestamp` format validation | 3 |
-| Multiple groups save/load | 2 |
+| `GetIsoTimestamp` ISO 8601 format validation | 3 |
+| Multiple groups save/load | 1 |
 
 ### Module: queue_manager (89 tests)
 
@@ -89,6 +89,64 @@ Results: 189 passed, 0 failed, 189 total
 | Multiple files in batch, multiple destinations | 10 |
 | Directory move disabled (rejects directories) | 8 |
 | Directory move enabled (expands recursively) | 9 |
+
+### Module: preserve_directory_structure (40 tests)
+
+| Category | Tests |
+|---|---|
+| Single file, structure disabled — dest path unchanged | 3 |
+| Single file, structure enabled — no dir root, dest unchanged | 3 |
+| Directory source, structure enabled — dest gets srcDirBase prefix | 5 |
+| Nested subdirectory, structure enabled — full path preserved | 5 |
+| Multiple files from same dir root — all get same prefix | 5 |
+| Structure enabled + multiple destinations — each gets prefix | 5 |
+| Multiple directory sources — each gets own basename prefix | 5 |
+| `FindEmptyDirsDirect` standalone verification | 9 |
+
+### Module: create_empty_directories (35 tests)
+
+| Category | Tests |
+|---|---|
+| Leaf empty directory detected | 5 |
+| Leaf empty directory, structure disabled — not collected | 3 |
+| Nested empty directories — only leaf-most recorded | 5 |
+| Empty dir alongside files — recorded | 5 |
+| Non-empty dir not recorded | 5 |
+| CreateEmptyDirectories disabled — no empty dirs collected | 5 |
+| Full directory tree with mixed content | 5 |
+
+### Module: copy_vs_move_mode (15 tests)
+
+| Category | Tests |
+|---|---|
+| CP mode entry creation | 3 |
+| MV mode entry creation | 3 |
+| Mode change mid-session — entries retain set mode | 9 |
+
+### Module: settings_json_roundtrip (20 tests)
+
+| Category | Tests |
+|---|---|
+| `preserveDirectoryStructure` true/false round-trip | 4 |
+| `createEmptyDirectories` true/false round-trip | 4 |
+| Both true round-trip | 4 |
+| Both false by default on new JSON | 4 |
+| Legacy JSON without fields — defaults to false | 4 |
+
+### Module: find_empty_directories (15 tests)
+
+| Category | Tests |
+|---|---|
+| Deeply nested empty chain — only leaf-most recorded | 5 |
+| Empty dir with empty subdir — only leaf recorded | 5 |
+| Multiple separate empty directories | 5 |
+
+### Module: source_dest_conflict_structure (8 tests)
+
+| Category | Tests |
+|---|---|
+| File already at structured dest path — skipped | 3 |
+| File not at structured dest — no conflict, entry created | 5 |
 
 ## Integration Test Scenarios
 
@@ -157,7 +215,7 @@ These scenarios require manual execution of the built application.
 1. Open Settings window
 2. Change sort mode to `Added Last`
 3. Change placement to `Lower Right`
-4. Enable directory moves, sidecar files, and hidden source options
+4. Enable directory moves, preserve structure, create empty dirs, sidecar files, and hidden source options
 5. Close and restart the application
 6. Verify all settings are restored
 
@@ -170,6 +228,22 @@ These scenarios require manual execution of the built application.
 | Drop duplicate files already in queue | "Already queued" message, duplicate skipped |
 | Transfer error during move | Worker pauses, Retry/Cancel dialog |
 | Malformed JSON file | Startup error, debug console, exits on Enter |
+
+### Scenario 9: Directory Structure Preservation
+
+1. Enable "Preserve directory structure" in Settings
+2. Create a directory with subdirectories and files
+3. Drag the directory onto a group
+4. Verify destination paths include source directory basename + relative subdirectory structure
+5. Verify files land in correct nested destination folders
+
+### Scenario 10: Empty Directory Creation
+
+1. Enable both "Preserve directory structure" and "Create empty directories" in Settings
+2. Create a directory tree with some empty subdirectories
+3. Drag the directory onto a group
+4. Verify empty leaf subdirectories are recreated at each destination
+5. Verify non-leaf empty directories (those containing other empty dirs) are not separately created
 
 ## Debug Mode Testing
 

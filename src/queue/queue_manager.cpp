@@ -47,16 +47,15 @@ static void FindEmptyDirectories(const std::wstring& dirPath, std::vector<std::w
 
     FindClose(hFind);
 
-    if (hasFiles) return;
-
-    // Check subdirectories
-    std::vector<std::wstring> emptySubDirs;
+    // Always recurse into subdirectories to find empty ones
     for (const auto& subDir : subDirs) {
-        FindEmptyDirectories(subDir, emptySubDirs);
+        FindEmptyDirectories(subDir, emptyDirs);
     }
 
-    // If no subdirs are empty, this directory is empty
-    if (!emptySubDirs.empty()) return;
+    // Only mark this directory as empty if it has no files AND no subdirectories
+    // (i.e., it's a truly empty leaf directory)
+    if (hasFiles) return;
+    if (!subDirs.empty()) return;
 
     // Compute relative path from dirPath
     std::wstring relPath = dirPath;
