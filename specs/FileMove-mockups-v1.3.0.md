@@ -39,6 +39,48 @@ FileMove/
     └── FileMove-mockups-v1.3.0.md   # UI mockups and implementation details
 ```
 
+## Main Window
+
+```text
++-----------------------------------------------------------+
+| FileMove (FileMove)                                 _ [X] |
+|-----------------------------------------------------------|
+| New / Tools                                               |
+| --------------------------------------------------------- |
+|                                                           |
+| Invoices 2026                                             |
+| Tax Docs                                                  |
+| Vendor PDFs                                               |
+| Archive                                                   |
+| Movies                                                    |
+| TV Shows                                                  |
+|                                                           |
+| --------------------------------------------------------- |
+| Queued: 12                    Status: Moving              |
++-----------------------------------------------------------+
+```
+
+### Notes
+
+- The title bar shows `FileMove` followed by the active JSON base name in parentheses. Example: `FileMove (FileMove)`.
+- The `New / Tools` header is a pinned, wide button at the top of the window. It remains visible regardless of scrolling or sorting.
+- Left click on the `New / Tools` header opens the Add Group window for creating a new group.
+- Right click on the `New / Tools` header opens the header context menu (Queue Window, Status, Settings, Search, About).
+- The header is not a drop target for files.
+- The group list below the header displays all saved groups, one per row.
+- Each group row shows only the group name. Full destination paths are not shown in the list.
+- All group rows are drop targets for files dragged from Windows Explorer.
+- Group rows highlight on hover to indicate drop target availability.
+- Hovering over a group row shows a tooltip with the group name and full destination paths with per-destination status icons.
+- Right click on a group row opens the group context menu (Use Clipboard, Edit, Delete).
+- The status bar at the bottom shows `Queued:` left justified followed by the current unfinished destination-file count.
+- The status bar shows `Status:` right justified followed by the current worker state (e.g., `Moving`, `Idle`, `Manual Pause`, `Paused - Error`).
+- The window is compact and dense to maximize the number of visible groups on screen.
+- The window supports resizing. Saved width and height are restored on startup.
+- Window placement on startup follows the placement setting: command-line `P` option, then JSON setting, then default `Upper Left`.
+- Restored size and position are kept within the bounds of the current screen.
+- The app auto-selects the last used group on startup if groups exist.
+
 ## Group Tooltip
 
 ```text
@@ -473,22 +515,3 @@ FileMove/
 | Queued: 12                    Status: Moving     |
 +--------------------------------------------------+
 ```
-
- 
-### Right click on a group row
- 
-```text
-+--------------------------------------------------+
-| Groups                                           |
-| ------------------------------------------------ |
-| Invoices 2026       +------------------+         |
-| Tax Docs            | Use Clipboard    |         |
-| Vendor PDFs         | Edit             |         |
-| Archive             | Delete...        |         |
-| Movies              +------------------+         |
-| TV Shows                                         |
-| ------------------------------------------------ |
-| Queued: 12                    Status: Moving     |
-+--------------------------------------------------+
-```
-
