@@ -2209,7 +2209,7 @@ static void TestSourceDestConflictStructure() {
 // ==================== Main ====================
 
 int main() {
-    std::cout << "FileMove v1.3.0 - Unit Tests" << std::endl;
+    std::cout << "FileMove v1.3.1 - Unit Tests" << std::endl;
     std::cout << "==============================" << std::endl;
 
     TestCmdlineParser();

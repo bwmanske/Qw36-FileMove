@@ -1,4 +1,4 @@
-# FileMove v1.3.0 — User Guide
+# FileMove v1.3.1 — User Guide
 
 ## Overview
 

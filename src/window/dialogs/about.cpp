@@ -195,9 +195,9 @@ void AboutDialog::OnPaint(HDC hdc) {
         CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
     SelectObject(hdc, hFont);
 
-    // Version line: "Version: 1.3.0" left, "Built On: ..." right
+    // Version line: "Version: 1.3.1" left, "Built On: ..." right
     RECT versionRect = { 15, 165, clientRect.right - 15, 185 };
-    std::wstring versionText = L"Version: 1.3.0";
+    std::wstring versionText = L"Version: 1.3.1";
     DrawTextW(hdc, versionText.c_str(), -1, &versionRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
     // Built On - from generated build config

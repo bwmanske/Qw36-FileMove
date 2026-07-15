@@ -7,13 +7,13 @@
 `CMakeLists.txt` defines the project with the following settings:
 
 - **Minimum CMake version**: 3.10
-- **Project version**: 1.3.0
+- **Project version**: 1.3.1
 - **C++ standard**: C++17 (required)
 - **Executable type**: WIN32 subsystem (no console on normal launch)
 
 ```cmake
 cmake_minimum_required(VERSION 3.10)
-project(FileMove VERSION 1.3.0 LANGUAGES CXX)
+project(FileMove VERSION 1.3.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 ```
@@ -73,7 +73,7 @@ add_executable(test_harness
 | `UNICODE` / `_UNICODE` | Wide-character API throughout |
 | `WIN32_LEAN_AND_MEAN` | Exclude rarely-used Windows headers |
 | `NOMINMAX` | Prevent min/max macro conflicts |
-| `FILEMOVE_VERSION` | Injected project version string (`"1.3.0"`) |
+| `FILEMOVE_VERSION` | Injected project version string (`"1.3.1"`) |
 | `FILEMOVE_BUILD_DATE_STR` | Generated at build time via PowerShell custom target into `GeneratedBuildConfig.h` |
 
 ### Embedded Resources
@@ -189,9 +189,9 @@ FileMove/
 │       └── orange-question.png       # Directory undetermined status (embedded at build)
 └── specs/
     ├── FileMove-spec-v1.2.0.md
-    ├── FileMove-spec-v1.3.0.md
+    ├── FileMove-spec-v1.3.1.md
     ├── FileMove-mockups-v1.2.0.md
-    └── FileMove-mockups-v1.3.0.md
+    └── FileMove-mockups-v1.3.1.md
 ```
 
 ## Phase 1: Entry Point & Window Scaffold
@@ -639,7 +639,7 @@ Modal About window showing build information.
 **Layout:**
 - Centered 128x128 image from `assets/images/about-image.png`
 - "Build Information" header
-- "Version: 1.3.0" (left) and "Built On: DATE TIME" (right) on same line
+- "Version: 1.3.1" (left) and "Built On: DATE TIME" (right) on same line
 - "Command Line:" followed by current run's arguments
 - Description text
 

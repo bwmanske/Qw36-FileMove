@@ -1,4 +1,4 @@
-# FileMove v1.3.0 — Testing Guide
+# FileMove v1.3.1 — Testing Guide
 
 ## Unit Tests
 
@@ -28,7 +28,7 @@ A simple inline test framework is used. Each test:
 
 Test output format:
 ```
-FileMove v1.3.0 - Unit Tests
+FileMove v1.3.1 - Unit Tests
 ==============================
 Testing cmdline_parser...
   cmdline_parser tests done.

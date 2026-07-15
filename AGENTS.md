@@ -1,12 +1,12 @@
 # AGENTS.md
 
 ## Core Source of Truth
-- Implementation must strictly follow `specs/FileMove-spec-v1.3.0.md`.
-- User interface design must strictly follow `specs/FileMove-mockups-v1.3.0`
+- Implementation must strictly follow `specs/FileMove-spec-v1.3.1.md`.
+- User interface design must strictly follow `specs/FileMove-mockups-v1.3.1`
 
 ## Key Constraints
 - **Tech Stack**: Win32, C++17, CMake (supports Windows and Linux).
-- **Version Focus**: Strictly version 1.3.0.
+- **Version Focus**: Strictly version 1.3.1.
 - **Workflow**: Explorer-first; the app is a compact destination chooser for Windows Explorer users.
 - **CLI Parsing**: Implement case-insensitive options (`/D`, `/I`, `/O`, `/S`, `/P`) exactly as specified. Options MUST be preceded by `/` or `-`.
 
