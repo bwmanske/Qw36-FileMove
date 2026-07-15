@@ -11,6 +11,7 @@
 ```
 FileMove/
 ├── CMakeLists.txt                    # cmake_minimum_required(VERSION 3.5)
+├── build.ps1                         # Build script (supports -RC for .rc regeneration)
 ├── src/
 │   ├── main.cpp                      # Entry point
 │   ├── window/                       # Main and child windows
@@ -28,6 +29,9 @@ FileMove/
 │   └── utils/
 │       ├── logging.h/cpp             # Debug console and log file
 │       └── cmdline_parser.h/cpp      # Command-line argument parsing
+├── resources/
+│   ├── FileMove.rc.in               # Resource script template
+│   └── GenerateRc.cmake             # CMake script for .rc regeneration
 ├── assets/
 │   ├── icons/FileMove-icon.png      # Application icon
 │   ├── images/about-image.png       # About dialog image (128x128)

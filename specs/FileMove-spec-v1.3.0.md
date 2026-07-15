@@ -1061,6 +1061,7 @@ Why this is the chosen platform:
 ```
 FileMove/
 ├── CMakeLists.txt                    # Build configuration (cmake_minimum_required 3.5+)
+├── build.ps1                         # Build script with -RC support
 ├── src/
 │   ├── main.cpp                      # Application entry point
 │   ├── window/                       # Window classes and message handling
@@ -1080,7 +1081,8 @@ FileMove/
 │   │   ├── resource_loader.h/cpp
 │   └── utils/                        # Helpers for logging, parsing, etc.
 ├── resources/
-│   └── FileMove.rc.in                # Resource script template
+│   ├── FileMove.rc.in                # Resource script template
+│   └── GenerateRc.cmake              # CMake script for .rc regeneration
 ├── assets/                           # Source assets (embedded at build time)
 │   ├── icons/
 │   │   ├── FileMove-icon.ico
@@ -1103,9 +1105,12 @@ All image assets must be embedded directly into the executable at build time. Th
 
 - The application icon (`.ico`) must be embedded as a standard Windows `ICON` resource so it displays correctly in Windows Explorer, the taskbar, the title bar, and the Alt-Tab switcher.
 - All PNG images (about image, 3-state status icons) must be embedded as `RT_RCDATA` resources and loaded at runtime via `IStream` + `Gdiplus::Image::FromStream()`.
-- A CMake `configure_file` step must generate the `.rc` file with correct paths to the `assets/` directory.
+- A CMake `add_custom_command` must generate the `.rc` file from `resources/FileMove.rc.in` with correct paths to the `assets/` directory.
+- The `.rc` generation command must depend on all asset files so that changes to any icon or image trigger automatic regeneration.
+- A `PRE_BUILD` command on the `FileMove` target must regenerate the `.rc` before every build to ensure asset file changes are always picked up by the resource compiler.
 - The build must not rely on a `POST_BUILD` step to copy assets to the output directory.
 - The executable must function correctly when placed in any directory without accompanying asset files.
+- `build.ps1 -RC` must regenerate the `.rc` file without a full rebuild.
 
 **Embedded resources:**
 

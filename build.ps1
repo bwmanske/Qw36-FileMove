@@ -18,6 +18,10 @@
 .PARAMETER Test
     Runs the unit test harness after building.
 
+.PARAMETER RC
+    Regenerates the .rc resource script from the template and asset files.
+    Useful after modifying asset files (icons, images) without a full rebuild.
+
 .PARAMETER Help
     Displays usage information and exits.
 
@@ -46,6 +50,10 @@
     Builds Release and runs unit tests.
 
 .EXAMPLE
+    .\build.ps1 -RC
+    Regenerates the .rc resource script from asset files.
+
+.EXAMPLE
     .\build.ps1 -Help
     Displays help information.
 #>
@@ -58,6 +66,7 @@ param(
     [switch]$Clean,
     [switch]$Both,
     [switch]$Test,
+    [switch]$RC,
     [switch]$Help
 )
 
@@ -69,13 +78,14 @@ function Show-Help {
     Write-Host "=====================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "USAGE:" -ForegroundColor Yellow
-    Write-Host "  .\build.ps1 [-Config <Release|Debug>] [-Clean] [-Both] [-Test] [-Help]"
+    Write-Host "  .\build.ps1 [-Config <Release|Debug>] [-Clean] [-Both] [-Test] [-RC] [-Help]"
     Write-Host ""
     Write-Host "OPTIONS:" -ForegroundColor Yellow
     Write-Host "  -Config    Build configuration: Release (default) or Debug"
     Write-Host "  -Clean     Remove build directory before configuring and building"
     Write-Host "  -Both      Build both Release and Debug configurations"
     Write-Host "  -Test      Run unit tests after building"
+    Write-Host "  -RC        Regenerate .rc resource script from asset files"
     Write-Host "  -Help      Show this help message and exit"
     Write-Host ""
     Write-Host "EXAMPLES:" -ForegroundColor Yellow
@@ -85,6 +95,7 @@ function Show-Help {
     Write-Host "  .\build.ps1 -Both          Build both Release and Debug"
     Write-Host "  .\build.ps1 -Both -Clean   Clean build of both"
     Write-Host "  .\build.ps1 -Test          Build Release and run tests"
+    Write-Host "  .\build.ps1 -RC            Regenerate .rc resource script"
     Write-Host ""
     exit 0
 }
@@ -175,6 +186,18 @@ function Invoke-Tests {
     Write-Host "  All tests passed." -ForegroundColor Gray
 }
 
+function Invoke-RC {
+    Write-Step "Regenerating .rc resource script..."
+    if (-not (Test-Path (Join-Path $PSScriptRoot "build"))) {
+        Invoke-Configure
+    }
+    cmake --build build --target generate_rc
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorAndExit ".rc regeneration failed."
+    }
+    Write-Host "  Generated: build/FileMove.rc" -ForegroundColor Gray
+}
+
 # --- Main ---
 
 if ($Help) {
@@ -190,6 +213,13 @@ if ($Clean) {
 
 if (-not (Test-Path (Join-Path $PSScriptRoot "build"))) {
     Invoke-Configure
+}
+
+if ($RC) {
+    Invoke-RC
+    Write-Host ""
+    Write-Host "Done." -ForegroundColor Green
+    exit 0
 }
 
 if ($Both) {

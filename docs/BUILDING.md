@@ -53,7 +53,22 @@ All image assets (icons, PNG images) are embedded directly into the executable a
 - `about-image.png` — About window image
 - `green-check.png`, `red-x.png`, `orange-question.png` — 3-state directory status icons
 
-The CMake `configure_file` step generates the `.rc` file with correct absolute paths to the `assets/` directory, and the Windows resource compiler embeds them into the final `.exe`.
+The `.rc` file is generated from `resources/FileMove.rc.in` by a CMake custom command that depends on all asset files. A `PRE_BUILD` step regenerates the `.rc` before every build, ensuring asset file changes are always picked up by the resource compiler.
+
+### 5. Build Script
+
+`build.ps1` provides a convenient wrapper around CMake:
+
+```powershell
+.\build.ps1                  # Build Release (default)
+.\build.ps1 -Config Debug    # Build Debug
+.\build.ps1 -Clean           # Remove build/ and rebuild Release
+.\build.ps1 -Both            # Build both Release and Debug
+.\build.ps1 -Test            # Build and run unit tests
+.\build.ps1 -RC              # Regenerate .rc resource script from asset files
+```
+
+The `-RC` flag regenerates `build/FileMove.rc` from `resources/FileMove.rc.in` and the current asset files. Use this after modifying any icon or image in `assets/` without doing a full rebuild. The `-RC` step is also run automatically during normal builds when asset files have changed.
 
 ## Building Tests
 
@@ -87,7 +102,13 @@ ctest -C Release
 | file_io | 25 |
 | json_parser | 30 |
 | queue_manager | 89 |
-| **Total** | **189** |
+| settings_persistence | 20 |
+| copy_vs_move_mode | 15 |
+| preserve_directory_structure | 40 |
+| create_empty_directories | 35 |
+| find_empty_directories | 15 |
+| source_dest_conflict_structure | 8 |
+| **Total** | **308** |
 
 ## Linked Libraries
 
@@ -146,7 +167,8 @@ FileMove/
 ├── tests/
 │   └── test_harness.cpp
 ├── resources/
-│   └── FileMove.rc.in
+│   ├── FileMove.rc.in                # Resource script template
+│   └── GenerateRc.cmake              # CMake script for .rc regeneration
 ├── third-party/
 │   └── nlohmann/
 │       └── json.hpp
@@ -165,6 +187,13 @@ Ensure the Windows SDK is installed. In Visual Studio Installer, verify that the
 ### Assets Not Found at Runtime
 
 All assets are now embedded in the executable. If images fail to load, verify the `.rc` file was generated correctly during CMake configuration and that the `assets/` directory exists at build time.
+
+### Updated Asset Not Appearing in Built Executable
+
+The `.rc` file only contains paths to asset files, not their content. When an asset file changes, the `.rc` content remains the same, so MSBuild's resource compiler may not detect the change. The `PRE_BUILD` command in `CMakeLists.txt` regenerates the `.rc` before every build to ensure asset changes are always picked up. If you modified an asset and the change doesn't appear:
+
+1. Run `.\build.ps1` (a full build will regenerate the `.rc` and recompile resources)
+2. If still not appearing, run `.\build.ps1 -Clean` for a clean rebuild
 
 ### Linker Errors for GDI+
 

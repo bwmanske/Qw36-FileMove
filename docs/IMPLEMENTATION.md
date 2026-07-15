@@ -82,16 +82,46 @@ All image assets are embedded directly into the executable via a Windows resourc
 
 **Resource script generation:**
 
+The `.rc` file is generated from `resources/FileMove.rc.in` by a CMake `add_custom_command` that depends on all asset files. A `PRE_BUILD` command on the `FileMove` target regenerates the `.rc` before every build, ensuring asset file changes are always picked up by the resource compiler.
+
 ```cmake
-set(FILEMOVE_ASSETS_DIR "${CMAKE_SOURCE_DIR}/assets")
-configure_file(
-    resources/FileMove.rc.in
-    ${CMAKE_BINARY_DIR}/FileMove.rc
-    @ONLY
+set(FILEMOVE_ASSET_FILES
+    assets/icons/FileMove-icon.ico
+    assets/images/about-image.png
+    assets/images/green-check.png
+    assets/images/red-x.png
+    assets/images/orange-question.png
+)
+
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/FileMove.rc
+    COMMAND ${CMAKE_COMMAND}
+        -DFILEMOVE_ASSETS_DIR="${FILEMOVE_ASSETS_DIR}"
+        -DFILEMOVE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+        -DFILEMOVE_BINARY_DIR="${CMAKE_BINARY_DIR}"
+        -P "${CMAKE_SOURCE_DIR}/resources/GenerateRc.cmake"
+    DEPENDS
+        resources/FileMove.rc.in
+        resources/GenerateRc.cmake
+        ${FILEMOVE_ASSET_FILES}
+    MAIN_DEPENDENCY resources/FileMove.rc.in
+    COMMENT "Generating FileMove.rc from assets"
+)
+
+add_custom_target(generate_rc DEPENDS ${CMAKE_BINARY_DIR}/FileMove.rc)
+
+add_custom_command(
+    TARGET FileMove PRE_BUILD
+    COMMAND ${CMAKE_COMMAND}
+        -DFILEMOVE_ASSETS_DIR="${FILEMOVE_ASSETS_DIR}"
+        -DFILEMOVE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+        -DFILEMOVE_BINARY_DIR="${CMAKE_BINARY_DIR}"
+        -P "${CMAKE_SOURCE_DIR}/resources/GenerateRc.cmake"
+    COMMENT "Regenerating FileMove.rc from assets"
 )
 ```
 
-The `.rc` file is generated from `resources/FileMove.rc.in` with `@FILEMOVE_ASSETS_DIR@` replaced by the actual source path. The Windows resource compiler embeds the assets into the final `.exe`.
+`resources/GenerateRc.cmake` reads the `.rc.in` template, substitutes `@FILEMOVE_ASSETS_DIR@` with the actual source path, and writes the output `.rc`. The `generate_rc` custom target can also be invoked standalone via `cmake --build build --target generate_rc` or `.\build.ps1 -RC`.
 
 **Embedded resources:**
 
@@ -141,12 +171,13 @@ FileMove/
 │       ├── cmdline_parser.h/cpp      # (Phase 2) CLI argument parsing
 │       └── logging.h/cpp             # (Phase 2) Debug console + log file
 ├── resources/
-│   └── FileMove.rc.in                # (Phase 8) Resource script template
+│   ├── FileMove.rc.in                # (Phase 8) Resource script template
+│   └── GenerateRc.cmake              # (Phase 8) CMake script for .rc regeneration
 ├── third-party/
 │   └── nlohmann/
 │       └── json.hpp                  # nlohmann/json v3.11.3 (header-only)
 ├── tests/
-│   └── test_harness.cpp              # (Phase 7) Unit tests (189 tests)
+│   └── test_harness.cpp              # (Phase 7) Unit tests (308 tests)
 ├── assets/
 │   ├── icons/
 │   │   ├── FileMove-icon.ico         # Application icon (embedded at build)
@@ -1094,7 +1125,7 @@ All assets are embedded into the executable at build time via a Windows resource
 **Run:** `build/Release/test_harness.exe`
 **CMake:** `ctest --config Release`
 
-### Test Coverage (189 tests)
+### Test Coverage (308 tests)
 
 **cmdline_parser (45 tests):**
 - Empty command line, valid/invalid `/D` values (MV, CP, case insensitive)
@@ -1137,6 +1168,35 @@ All assets are embedded into the executable at build time via a Windows resource
 - Directory move disabled (rejects directories)
 - Directory move enabled (expands directories recursively)
 
+**settings_persistence (20 tests):**
+- `preserveDirectoryStructure` and `createEmptyDirectories` save/load round-trip
+- Default values for new and empty JSON files
+- Legacy JSON without new settings keys loads with defaults
+
+**copy_vs_move_mode (15 tests):**
+- CP and MV mode entry creation and source file handling
+- Mid-session mode changes reflected in new queue entries
+
+**preserve_directory_structure (40 tests):**
+- Destination path prefixing with structure enabled/disabled
+- Nested directory structure preservation
+- Multiple sources and destinations with structure
+
+**create_empty_directories (35 tests):**
+- Leaf empty directory detection and creation
+- Nested empty directory chains
+- Mixed content directories
+- Disabled mode skips empty directory creation
+
+**find_empty_directories (15 tests):**
+- Deep nesting, empty parent/child directories
+- Multiple separate empty directories in a tree
+- Always recurses into subdirectories before checking emptiness
+
+**source_dest_conflict_structure (8 tests):**
+- File already at structured destination path
+- No-conflict cases with structure preservation
+
 ### Bugs Fixed During Testing
 
 1. **`EnsureDirectoryExists` logic error** — `_waccess` return value was negated incorrectly (`!_waccess()` instead of `_waccess() != 0`), preventing directory creation
@@ -1156,11 +1216,13 @@ All image assets are embedded into the executable at build time via a Windows re
 
 **New files:**
 - `resources/FileMove.rc.in` — Resource script template with `@FILEMOVE_ASSETS_DIR@` macro
+- `resources/GenerateRc.cmake` — CMake script that reads `.rc.in`, substitutes asset paths, and writes `.rc`
 - `src/resources/resource_ids.h` — Shared resource ID definitions (101, 201-204)
 - `src/resources/resource_loader.h/cpp` — `LoadEmbeddedIcon()` and `LoadEmbeddedPng()` helpers
 
 **Modified files:**
-- `CMakeLists.txt` — Added `configure_file` for .rc generation, added resource_loader.cpp and generated .rc to sources, removed `POST_BUILD` asset copy
+- `CMakeLists.txt` — Added `add_custom_command` with asset file dependencies for .rc regeneration, `generate_rc` custom target, `PRE_BUILD` command to regenerate .rc before every build, `resource_loader.cpp` and generated `.rc` to sources, removed `POST_BUILD` asset copy
+- `build.ps1` — Added `-RC` switch to regenerate .rc standalone
 - `main_window.cpp` — Icon loaded via `LoadEmbeddedIcon()` instead of `LoadImageW(LR_LOADFROMFILE)`
 - `about.cpp` — About image loaded via `LoadEmbeddedPng(IDR_ABOUT_IMAGE)` instead of `Image::FromFile()`
 - `group_editor.cpp` — 3-state icons loaded via `LoadEmbeddedPng()` instead of `Image::FromFile()`
@@ -1169,4 +1231,5 @@ All image assets are embedded into the executable at build time via a Windows re
 - `.ico` is embedded as a standard `ICON` resource, so Windows Explorer displays it automatically
 - PNG images are embedded as `RT_RCDATA` resources, loaded at runtime via `IStream` + `Gdiplus::Image::FromStream()`
 - `WIN32_LEAN_AND_MEAN` excludes `<objbase.h>`, so `resource_loader.cpp` must `#include <objbase.h>` before `<gdiplus.h>` to make `IStream` available
-- CMake `configure_file` generates the `.rc` with correct absolute paths to the `assets/` directory
+- `add_custom_command` depends on all asset files, `.rc.in`, and `GenerateRc.cmake` — any change triggers .rc regeneration
+- `build.ps1 -RC` regenerates .rc without a full rebuild

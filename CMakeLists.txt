@@ -6,11 +6,34 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Generate .rc from template with correct asset paths
 set(FILEMOVE_ASSETS_DIR "${CMAKE_SOURCE_DIR}/assets")
-configure_file(
-    resources/FileMove.rc.in
-    ${CMAKE_BINARY_DIR}/FileMove.rc
-    @ONLY
+
+# Asset files that the .rc depends on
+set(FILEMOVE_ASSET_FILES
+    assets/icons/FileMove-icon.ico
+    assets/images/about-image.png
+    assets/images/green-check.png
+    assets/images/red-x.png
+    assets/images/orange-question.png
 )
+
+# Regenerate .rc whenever any asset file or the template changes
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/FileMove.rc
+    COMMAND ${CMAKE_COMMAND}
+        -DFILEMOVE_ASSETS_DIR="${FILEMOVE_ASSETS_DIR}"
+        -DFILEMOVE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+        -DFILEMOVE_BINARY_DIR="${CMAKE_BINARY_DIR}"
+        -P "${CMAKE_SOURCE_DIR}/resources/GenerateRc.cmake"
+    DEPENDS
+        resources/FileMove.rc.in
+        resources/GenerateRc.cmake
+        ${FILEMOVE_ASSET_FILES}
+    MAIN_DEPENDENCY resources/FileMove.rc.in
+    COMMENT "Generating FileMove.rc from assets"
+)
+
+# Custom target for standalone .rc regeneration (build.ps1 -RC)
+add_custom_target(generate_rc DEPENDS ${CMAKE_BINARY_DIR}/FileMove.rc)
 
 # nlohmann/json (header-only, single header in third-party/)
 
@@ -49,6 +72,17 @@ set(SOURCES
 # Executable
 add_executable(FileMove WIN32 ${SOURCES})
 add_dependencies(FileMove generate_build_config)
+
+# Force .rc regeneration before every build to catch asset file changes
+add_custom_command(
+    TARGET FileMove PRE_BUILD
+    COMMAND ${CMAKE_COMMAND}
+        -DFILEMOVE_ASSETS_DIR="${FILEMOVE_ASSETS_DIR}"
+        -DFILEMOVE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+        -DFILEMOVE_BINARY_DIR="${CMAKE_BINARY_DIR}"
+        -P "${CMAKE_SOURCE_DIR}/resources/GenerateRc.cmake"
+    COMMENT "Regenerating FileMove.rc from assets"
+)
 
 # Include directories
 target_include_directories(FileMove PRIVATE
