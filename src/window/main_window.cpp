@@ -499,7 +499,7 @@ LRESULT CALLBACK MainWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
             if (pt.y < instance->mHeaderHeight) {
                 int gearSize = instance->mHeaderHeight;
-                int gearRight = instance->mClientRect.right - 10;
+                int gearRight = instance->mClientRect.right - 5;
                 int gearLeft = gearRight - gearSize;
                 if (pt.x >= gearLeft && pt.x <= gearRight) {
                     instance->OnHeaderRightClick(pt);
@@ -515,7 +515,7 @@ LRESULT CALLBACK MainWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
             if (pt.y < instance->mHeaderHeight) {
                 int gearSize = instance->mHeaderHeight;
-                int gearRight = instance->mClientRect.right - 10;
+                int gearRight = instance->mClientRect.right - 5;
                 int gearLeft = gearRight - gearSize;
                 if (pt.x >= gearLeft && pt.x <= gearRight) {
                     instance->OnHeaderRightClick(pt);
@@ -533,7 +533,7 @@ LRESULT CALLBACK MainWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
             if (pt.y < instance->mHeaderHeight) {
                 int gearSize = instance->mHeaderHeight;
-                int gearRight = instance->mClientRect.right - 10;
+                int gearRight = instance->mClientRect.right - 5;
                 int gearLeft = gearRight - gearSize;
                 if (pt.x >= gearLeft && pt.x <= gearRight) {
                     instance->OnHeaderRightClick(pt);
@@ -874,9 +874,9 @@ void MainWindow::DrawHeader(HDC hdc) {
 
     int clientWidth = mClientRect.right;
     int gearSize = mHeaderHeight;
-    int gearRight = clientWidth - 10;
+    int gearRight = clientWidth - 5;
     int gearLeft = gearRight - gearSize;
-    int newGroupRight = gearLeft - 5;
+    int newGroupRight = gearLeft;
 
     // Draw "New Group" button (5px left, right = gearLeft - 5, flat)
     RECT newGroupRect;
