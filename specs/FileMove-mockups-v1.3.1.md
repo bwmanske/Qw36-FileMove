@@ -49,7 +49,7 @@ FileMove/
 +-----------------------------------------------------------+
 | FileMove (FileMove)                                 _ [X] |
 |-----------------------------------------------------------|
-| New / Tools                                               |
+| New Group                                    [gear icon]  |
 | --------------------------------------------------------- |
 |                                                           |
 | Invoices 2026                                             |
@@ -67,9 +67,11 @@ FileMove/
 ### Notes
 
 - The title bar shows `FileMove` followed by the active JSON base name in parentheses. Example: `FileMove (FileMove)`.
-- The `New / Tools` header is a pinned, wide button at the top of the window. It remains visible regardless of scrolling or sorting.
-- Left click on the `New / Tools` header opens the Add Group window for creating a new group.
-- Right click on the `New / Tools` header opens the header context menu (Queue Window, Status, Settings, Search, About).
+- The header is a pinned bar at the top of the window. It remains visible regardless of scrolling or sorting.
+- The header contains two buttons:
+  - `New Group` button on the left — left click opens the Add Group window for creating a new group.
+  - Gear icon button on the right — left click opens the header context menu (Queue Window, Status, Settings, Search, About).
+- Right click on either button has no action.
 - The header is not a drop target for files.
 - The group list below the header displays all saved groups, one per row.
 - Each group row shows only the group name. Full destination paths are not shown in the list.
@@ -168,7 +170,7 @@ FileMove/
 
 ### Notes
  
-- `About` is opened from the `New / Tools` header right-click menu.
+- `About` is opened from the gear icon button context menu.
 - The top image is centered and uses `FileGroupMover/Assets/Images/about-image.png`.
 - The top section shows build information for Version `1.3.1`.
 - `Version` is left justified and `Built On` is right justified on the same line.
@@ -209,7 +211,7 @@ FileMove/
 
 ### Notes
  
-- `Status` is opened from the `New / Tools` header right-click menu.
+- `Status` is opened from the gear icon button context menu.
 - The Active Files section shows the full JSON path and the full `.log` path.
 - The `LOG` line includes a right-justified `Open` button.
 - `Open` launches the active `.log` file in the default editor.
@@ -339,11 +341,10 @@ FileMove/
 
 ## Right-Click Menu Mockups
 
-## `New / Tools` Header Menu
- 
+## Gear Button Context Menu
+  
 ```text
 +------------------+
-| New / Tools      |
 | Queue Window (12)|
 | Status           |
 | Settings         |
@@ -351,10 +352,10 @@ FileMove/
 | About            |
 +------------------+
 ```
- 
+  
 ### Notes
- 
-- Right click on the pinned `New / Tools` header opens this menu.
+  
+- Left click on the gear icon button opens this menu.
 - `Queue Window` opens the Queue window.
 - `Status` opens the Status window.
 - `Settings` opens the Settings window.
@@ -401,7 +402,7 @@ FileMove/
 
 ### Notes
 
-- `Queue Window` is opened from the `New / Tools` header right-click menu.
+- `Queue Window` is opened from the gear icon button context menu.
 - The menu label shows the current queued destination count in parentheses.
 - The window is non-modal and can remain open while the main window continues accepting drops and moves.
 - The list updates automatically when destinations are added to the queue or completed by the worker thread.
@@ -437,7 +438,7 @@ FileMove/
 
 ### Notes
 
-- `Search` is opened from the `New / Tools` header right-click menu.
+- `Search` is opened from the gear icon button context menu.
 - The text input box at the top accepts a search string.
 - The listbox below displays all loaded group names.
 - As the user types, the listbox filters in real time to show only groups whose name contains the typed string (case-insensitive).

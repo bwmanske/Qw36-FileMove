@@ -62,8 +62,8 @@ The app should support Explorer-based ways of handing files to a saved group.
 Use a single compact window focused entirely on managing and selecting destination groups.
 
 ### Main layout
- 
-- A pinned header at the top of the window containing a wide, centered button labeled `New / Tools`
+  
+- A pinned header at the top of the window containing a `New Group` button and a gear icon button
 - Dense list of saved groups below the header
 - Right-click context menu for list-level actions (on group rows)
 - A small status bar at the bottom of the main window
@@ -101,19 +101,22 @@ Why:
 - Showing full paths in the list wastes horizontal space.
 - Group names are the primary scanning target.
 - Tooltips keep the interface dense while still making the full path available on demand.
-- A pinned `New / Tools` header keeps creation and settings access consistent regardless of scrolling or sorting.
+- A pinned header with `New Group` and gear buttons keeps creation and settings access consistent regardless of scrolling or sorting.
  
 
-### `New / Tools` header behavior
- 
-- The header is a single wide button labeled `New / Tools`.
-- Left click on the header opens the window for creating a new group name and destination location.
-- Right click on the header opens a context menu with:
+### Header behavior
+  
+- The header contains two buttons:
+  - `New Group` button on the left — creates a new group
+  - Gear icon button on the right — opens the tools context menu
+- Left click on the `New Group` button opens the window for creating a new group name and destination location.
+- Left click on the gear icon button opens a context menu with:
   - `Queue Window`
   - `Status`
   - `Settings`
   - `Search`
   - `About`
+- Right click on either button has no action.
 
 
 - `Queue Window` opens a non-modal Queue window.
@@ -125,7 +128,7 @@ Why:
 
 ### About window
  
-Add a separate `About` window opened from the `New / Tools` header right-click menu.
+Add a separate `About` window opened from the gear icon button context menu.
  
 The top of the About window must show:
 
@@ -145,7 +148,7 @@ About window behavior:
 
 ### Status window
  
-Add a separate `Status` window opened from the `New / Tools` header right-click menu.
+Add a separate `Status` window opened from the gear icon button context menu.
  
 The top section of the Status window must show:
 
@@ -185,7 +188,7 @@ Status window behavior:
 
 ### Queue window
  
-Add a separate non-modal `Queue` window opened from the `New / Tools` header right-click menu.
+Add a separate non-modal `Queue` window opened from the gear icon button context menu.
  
 Queue window behavior:
 
@@ -208,7 +211,7 @@ Queue window behavior:
 
 ### Search window
 
-Add a separate modal `Search` window opened from the `New / Tools` header right-click menu.
+Add a separate modal `Search` window opened from the gear icon button context menu.
 
 Search window behavior:
 
@@ -1126,7 +1129,7 @@ All image assets must be embedded directly into the executable at build time. Th
 
 - Create, rename, delete groups
 - Save group name + destination list
-- Pinned `New / Tools` header at the top of the window
+- Pinned header with `New Group` button and gear icon button at the top of the window
 - Left click on header opens new group dialog
 - Right click on header opens context menu: Queue Window, Status, Settings, About
 - Open an About window from the header right-click menu

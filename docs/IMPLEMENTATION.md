@@ -509,13 +509,14 @@ Background thread that processes queued file moves with pause/resume, error hand
 The main application window with pinned header, group list, and status bar.
 
 **Window layout:**
-- Pinned header (28px): Contains "New / Tools" button
+- Pinned header (28px): Contains "New Group" button and gear icon button
 - Group list: Fills space between header and status bar
 - Status bar (22px): Shows "Queued: X" (left) and "Status: X" (right)
 
 **Header behavior:**
-- Left click: Opens `GroupEditorDialog` in new mode (empty fields, "New Group" title)
-- Right click: Shows context menu with Queue Window, Status, Settings, Search, About
+- Left click "New Group": Opens `GroupEditorDialog` in new mode (empty fields, "New Group" title)
+- Left click gear button: Shows context menu with Queue Window, Status, Settings, Search, About
+- Right click either button: No action
 
 **Group list integration:**
 - Embedded `GroupList` control

@@ -12,14 +12,14 @@ FileMove is a compact Windows utility that stores named destination groups for f
 
 1. Run `FileMove.exe`
 2. The main window opens with a compact group list
-3. Left-click the **New / Tools** header to create your first group
+3. Left-click the **New Group** button to create your first group
 4. Enter a group name (at least 3 letters, max 200 characters)
 5. Add one or more destination folder paths
 6. Click **OK**
 
 ### Creating a Group
 
-1. Left-click **New / Tools** header
+1. Left-click **New Group** button
 2. Enter a unique group name
 3. Click **Add Destination** to add destination folders
 4. Each destination shows a status icon:
@@ -52,7 +52,7 @@ FileMove is a compact Windows utility that stores named destination groups for f
 
 ```
 +--------------------------------------------------+
-| New / Tools                                      |
+| New Group                              [gear]    |
 +--------------------------------------------------+
 | Group Name 1                                     |
 | Group Name 2                                     |
@@ -62,12 +62,13 @@ FileMove is a compact Windows utility that stores named destination groups for f
 +--------------------------------------------------+
 ```
 
-### Header (New / Tools)
+### Header
 
-| Action | Result |
-|---|---|
-| Left-click | Open group editor (create new group) |
-| Right-click | Context menu: Queue Window, Status, Settings, Search, About |
+| Button | Action | Result |
+|---|---|---|
+| **New Group** | Left-click | Open group editor (create new group) |
+| **Gear icon** | Left-click | Context menu: Queue Window, Status, Settings, Search, About |
+| Either | Right-click | No action |
 
 The **Queue Window** menu label shows the current queued destination count in parentheses.
 
@@ -98,7 +99,7 @@ Used for creating and editing groups. Contains:
 
 ### Status Window
 
-Accessed via `New / Tools` > `Status`. Shows:
+Accessed via gear button > `Status`. Shows:
 - **Active Files**: Current JSON and `.log` file paths
 - **Open** button on the LOG line to launch the log file in the default editor
 - **JSON file list**: All `.json` files in the data directory
@@ -111,7 +112,7 @@ The Status window closes automatically after successfully opening or creating a 
 
 ### Queue Window
 
-Accessed via `New / Tools` > `Queue Window`. Non-modal window showing:
+Accessed via gear button > `Queue Window`. Non-modal window showing:
 - All destination file paths currently queued or in progress
 - Live-updating list as files are added and processed
 - Current queued count in the heading
@@ -122,7 +123,7 @@ Accessed via `New / Tools` > `Queue Window`. Non-modal window showing:
 
 ### Settings Window
 
-Accessed via `New / Tools` > `Settings`. Contains:
+Accessed via gear button > `Settings`. Contains:
 
 **Sort Order** (radio buttons):
 - Most Recently Used (default)
@@ -148,7 +149,7 @@ Accessed via `New / Tools` > `Settings`. Contains:
 
 ### Search Window
 
-Accessed via `New / Tools` > `Search`. Modal dialog containing:
+Accessed via gear button > `Search`. Modal dialog containing:
 - Text input box at the top for typing a search string
 - Listbox below that filters group names in real time as you type (case-insensitive)
 - Double-click a group name to select it — the main window scrolls to that group and highlights it
@@ -156,7 +157,7 @@ Accessed via `New / Tools` > `Search`. Modal dialog containing:
 
 ### About Window
 
-Accessed via `New / Tools` > `About`. Shows:
+Accessed via gear button > `About`. Shows:
 - Application icon and image
 - Version and build date
 - Command-line arguments for the current session

@@ -174,7 +174,7 @@ These scenarios require manual execution of the built application.
 ### Scenario 3: Queue Processing
 
 1. Queue multiple batches to the same group
-2. Open Queue window from `New / Tools` > `Queue Window`
+2. Open Queue window from gear button > `Queue Window`
 3. Verify queue updates as files process
 4. Pause processing via Status window
 5. Resume processing
