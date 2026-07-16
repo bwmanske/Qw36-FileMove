@@ -6,3 +6,4 @@
 #define IDR_GREEN_CHECK       202
 #define IDR_RED_X             203
 #define IDR_ORANGE_QUESTION   204
+#define IDR_GEAR_IMAGE        205

@@ -11,6 +11,7 @@
 #include "dialogs/search.h"
 #include "dialogs/new_file.h"
 #include "resources/resource_loader.h"
+#include "resources/resource_ids.h"
 #include <objbase.h>
 #include <gdiplus.h>
 #include <dwmapi.h>
@@ -69,6 +70,7 @@ MainWindow::MainWindow()
     , mDropCookie(0)
     , mDragHighlightRow(-1)
     , mLeftButtonDown(false)
+    , mGearImage(NULL)
 {
     mLastClickPt.x = 0;
     mLastClickPt.y = 0;
@@ -77,6 +79,10 @@ MainWindow::MainWindow()
 MainWindow::~MainWindow() {
     if (mGroupList.GetHWND() && mOriginalListViewProc) {
         SetWindowLongPtrW(mGroupList.GetHWND(), GWL_WNDPROC, (LONG_PTR)mOriginalListViewProc);
+    }
+    if (mGearImage) {
+        delete static_cast<Image*>(mGearImage);
+        mGearImage = NULL;
     }
 }
 
@@ -88,6 +94,9 @@ HWND MainWindow::Create(HINSTANCE hInstance, int nCmdShow) {
     // Load application icon from embedded resource
     HICON hIcon = LoadEmbeddedIcon(hInstance, 32);
     HICON hIconSm = LoadEmbeddedIcon(hInstance, 16);
+
+    // Load gear image from embedded resource
+    mGearImage = LoadEmbeddedPng(hInstance, IDR_GEAR_IMAGE);
     DebugConsoleWriteLine(L"MainWindow::Create: icons loaded (hIcon=" + std::to_wstring(reinterpret_cast<ULONG_PTR>(hIcon)) + L", hIconSm=" + std::to_wstring(reinterpret_cast<ULONG_PTR>(hIconSm)) + L")");
 
     // Register window class
@@ -489,7 +498,12 @@ LRESULT CALLBACK MainWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             ScreenToClient(hwnd, &pt);
 
             if (pt.y < instance->mHeaderHeight) {
-                instance->OnHeaderRightClick(pt);
+                int gearSize = instance->mHeaderHeight;
+                int gearRight = instance->mClientRect.right - 10;
+                int gearLeft = gearRight - gearSize;
+                if (pt.x >= gearLeft && pt.x <= gearRight) {
+                    instance->OnHeaderRightClick(pt);
+                }
             }
             break;
         }
@@ -500,7 +514,14 @@ LRESULT CALLBACK MainWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             pt.y = HIWORD(lParam);
 
             if (pt.y < instance->mHeaderHeight) {
-                instance->OnHeaderClick();
+                int gearSize = instance->mHeaderHeight;
+                int gearRight = instance->mClientRect.right - 10;
+                int gearLeft = gearRight - gearSize;
+                if (pt.x >= gearLeft && pt.x <= gearRight) {
+                    instance->OnHeaderRightClick(pt);
+                } else {
+                    instance->OnHeaderClick();
+                }
             }
             break;
         }
@@ -511,7 +532,12 @@ LRESULT CALLBACK MainWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             pt.y = HIWORD(lParam);
 
             if (pt.y < instance->mHeaderHeight) {
-                instance->OnHeaderRightClick(pt);
+                int gearSize = instance->mHeaderHeight;
+                int gearRight = instance->mClientRect.right - 10;
+                int gearLeft = gearRight - gearSize;
+                if (pt.x >= gearLeft && pt.x <= gearRight) {
+                    instance->OnHeaderRightClick(pt);
+                }
             }
             break;
         }
@@ -846,22 +872,38 @@ void MainWindow::DrawHeader(HDC hdc) {
     FillRect(hdc, &headerRect, bgBrush);
     DeleteObject(bgBrush);
 
-    // Draw "New / Tools" button (full-width, 5px offset, flat)
-    RECT btnRect;
-    btnRect.left = 5;
-    btnRect.top = 0;
-    btnRect.right = mClientRect.right - 5;
-    btnRect.bottom = mHeaderHeight;
+    int clientWidth = mClientRect.right;
+    int gearSize = mHeaderHeight;
+    int gearRight = clientWidth - 10;
+    int gearLeft = gearRight - gearSize;
+    int newGroupRight = gearLeft - 5;
+
+    // Draw "New Group" button (5px left, right = gearLeft - 5, flat)
+    RECT newGroupRect;
+    newGroupRect.left = 5;
+    newGroupRect.top = 0;
+    newGroupRect.right = newGroupRight;
+    newGroupRect.bottom = mHeaderHeight;
 
     HBRUSH btnBrush = CreateSolidBrush(RGB(220, 220, 230));
-    FillRect(hdc, &btnRect, btnBrush);
+    FillRect(hdc, &newGroupRect, btnBrush);
+    DeleteObject(btnBrush);
+
+    // Draw gear button (flat, right-aligned at 10px from edge)
+    RECT gearRect;
+    gearRect.left = gearLeft;
+    gearRect.top = 0;
+    gearRect.right = gearRight;
+    gearRect.bottom = mHeaderHeight;
+
+    FillRect(hdc, &gearRect, btnBrush);
     DeleteObject(btnBrush);
 
     // Draw separator line (after button fill so it's visible)
     MoveToEx(hdc, 0, mHeaderHeight - 1, NULL);
-    LineTo(hdc, mClientRect.right, mHeaderHeight - 1);
+    LineTo(hdc, clientWidth, mHeaderHeight - 1);
 
-    // Draw button text (non-bold for compactness)
+    // Draw "New Group" text (non-bold for compactness)
     SetBkMode(hdc, TRANSPARENT);
     SetTextColor(hdc, RGB(0, 0, 0));
     NONCLIENTMETRICSW ncm = {};
@@ -870,9 +912,19 @@ void MainWindow::DrawHeader(HDC hdc) {
     ncm.lfSmCaptionFont.lfWeight = FW_NORMAL;
     HFONT hFont = CreateFontIndirectW(&ncm.lfSmCaptionFont);
     HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
-    DrawTextW(hdc, L"New / Tools", -1, &btnRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    DrawTextW(hdc, L"New Group", -1, &newGroupRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     SelectObject(hdc, hOldFont);
     DeleteObject(hFont);
+
+    // Draw gear image centered in gear button, scaled to header height
+    if (mGearImage) {
+        Graphics graphics(hdc);
+        int imgMargin = 2;
+        int imgSize = gearSize - imgMargin * 2;
+        int imgX = gearLeft + imgMargin;
+        int imgY = imgMargin;
+        graphics.DrawImage(static_cast<Image*>(mGearImage), imgX, imgY, imgSize, imgSize);
+    }
 }
 
 LRESULT CALLBACK MainWindow::ListViewWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {

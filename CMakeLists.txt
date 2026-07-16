@@ -14,6 +14,7 @@ set(FILEMOVE_ASSET_FILES
     assets/images/green-check.png
     assets/images/red-x.png
     assets/images/orange-question.png
+    assets/images/gear-image.png
 )
 
 # Regenerate .rc whenever any asset file or the template changes

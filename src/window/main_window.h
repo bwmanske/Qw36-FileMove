@@ -163,6 +163,7 @@ private:
     int mDragHighlightRow;
     POINT mLastClickPt;
     bool mLeftButtonDown;
+    void* mGearImage;
 };
 
 // Global main window instance
