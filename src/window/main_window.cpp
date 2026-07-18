@@ -1340,7 +1340,7 @@ void MainWindow::OnDrop(int row, const std::vector<std::string>& files) {
     bool prepared = gQueueManager.PrepareBatch(groupId, files, group->destinationPaths, errorMsg);
 
     if (!prepared) {
-        MessageBoxW(mHWND, errorMsg.c_str(), L"Queue Error", MB_ICONERROR | MB_OK);
+        MessageBoxW(mHWND, errorMsg.c_str(), L"Queue Error", MB_ICONERROR | MB_OK | MB_TOPMOST);
         return;
     }
 
@@ -1431,7 +1431,7 @@ void MainWindow::OnUseClipboard() {
     bool prepared = gQueueManager.PrepareBatch(groupId, files, group->destinationPaths, errorMsg);
 
     if (!prepared) {
-        MessageBoxW(mHWND, errorMsg.c_str(), L"Queue Error", MB_ICONERROR);
+        MessageBoxW(mHWND, errorMsg.c_str(), L"Queue Error", MB_ICONERROR | MB_TOPMOST);
         return;
     }
 

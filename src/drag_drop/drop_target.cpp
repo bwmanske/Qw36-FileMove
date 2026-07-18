@@ -114,11 +114,11 @@ STDMETHODIMP DropTarget::Drop(IDataObject* pDataObj, DWORD grfKeyState,
 
     std::vector<std::string> files;
     for (const auto& f : droppedFiles) {
+        int len = WideCharToMultiByte(CP_UTF8, 0, f.c_str(), (int)f.size(), NULL, 0, NULL, NULL);
+        if (len <= 0) continue;
         std::string narrow;
-        narrow.reserve(f.size());
-        for (wchar_t wc : f) {
-            narrow += static_cast<char>(wc);
-        }
+        narrow.resize(len);
+        WideCharToMultiByte(CP_UTF8, 0, f.c_str(), (int)f.size(), &narrow[0], len, NULL, NULL);
         files.push_back(narrow);
     }
 

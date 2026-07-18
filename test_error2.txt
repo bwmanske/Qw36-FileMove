@@ -1,0 +1,4 @@
+  FAIL: !(FileExists(sidecar)) at line 973
+  FAIL: qm.GetQueuedDestinationCount() == 3 (4 != 3) at line 1003
+  FAIL: qm.GetQueuedDestinationCount() == 2 (3 != 2) at line 1035
+  FAIL: qm.GetQueuedDestinationCount() == 3 (4 != 3) at line 1087

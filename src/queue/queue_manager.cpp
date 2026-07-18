@@ -115,15 +115,22 @@ void QueueManager::SetDebugMode(DebugTransferMode mode) {
 }
 
 static std::wstring StringToWString(const std::string& s) {
-    return std::wstring(s.begin(), s.end());
+    if (s.empty()) return L"";
+    int len = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), (int)s.size(), NULL, 0);
+    if (len <= 0) return std::wstring(s.begin(), s.end());
+    std::wstring result;
+    result.resize(len);
+    MultiByteToWideChar(CP_UTF8, 0, s.c_str(), (int)s.size(), &result[0], len);
+    return result;
 }
 
 static std::string WStringToString(const std::wstring& s) {
+    if (s.empty()) return "";
+    int len = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), (int)s.size(), NULL, 0, NULL, NULL);
+    if (len <= 0) return "";
     std::string result;
-    result.reserve(s.size());
-    for (wchar_t wc : s) {
-        result += static_cast<char>(wc);
-    }
+    result.resize(len);
+    WideCharToMultiByte(CP_UTF8, 0, s.c_str(), (int)s.size(), &result[0], len, NULL, NULL);
     return result;
 }
 

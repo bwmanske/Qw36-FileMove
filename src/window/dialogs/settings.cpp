@@ -74,7 +74,7 @@ bool SettingsDialog::Show(HWND parent, AppSettings& settings) {
         L"FileMoveSettingsClass",
         L"Settings",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-        CW_USEDEFAULT, CW_USEDEFAULT, 415, 375,
+        CW_USEDEFAULT, CW_USEDEFAULT, 400, 373,
         parent, NULL, hInstance, this
     );
 
@@ -99,7 +99,7 @@ bool SettingsDialog::Show(HWND parent, AppSettings& settings) {
     // Sort Order section header (static text)
     CreateWindowExW(0, WC_STATICW, L"Sort Order",
         WS_CHILD | WS_VISIBLE,
-        10, y, 380, 16,
+        10, y, 365, 16,
         mHWND, NULL, hInstance, NULL);
     y += 20;
 
@@ -139,7 +139,7 @@ bool SettingsDialog::Show(HWND parent, AppSettings& settings) {
     // Placement section header
     CreateWindowExW(0, WC_STATICW, L"Placement",
         WS_CHILD | WS_VISIBLE,
-        10, y, 380, 16,
+        10, y, 365, 16,
         mHWND, NULL, hInstance, NULL);
     y += 20;
 
@@ -183,7 +183,7 @@ bool SettingsDialog::Show(HWND parent, AppSettings& settings) {
     // Options section header
     CreateWindowExW(0, WC_STATICW, L"Options",
         WS_CHILD | WS_VISIBLE,
-        10, y, 380, 16,
+        10, y, 365, 16,
         mHWND, NULL, hInstance, NULL);
     y += 20;
 
