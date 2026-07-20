@@ -8,6 +8,7 @@
 
 enum ConflictButtons {
     IDM_CONFLICT_REPLACE = 4001,
+    IDM_CONFLICT_REPLACE_ALL,
     IDM_CONFLICT_KEEP_BOTH,
     IDM_CONFLICT_SKIP
 };
@@ -47,7 +48,7 @@ ConflictResolution ConflictDialog::Show(HWND parent, const std::wstring& fileNam
         L"FileMoveConflictClass",
         L"File Conflict",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-        CW_USEDEFAULT, CW_USEDEFAULT, 420, 210,
+        CW_USEDEFAULT, CW_USEDEFAULT, 480, 210,
         parent, NULL, hInstance, this
     );
 
@@ -65,9 +66,9 @@ ConflictResolution ConflictDialog::Show(HWND parent, const std::wstring& fileNam
 
     // Create buttons
     int btnY = mClientRect.bottom - 35;
-    int btnW = 85;
+    int btnW = 80;
     int btnGap = 8;
-    int totalBtns = btnW * 3 + btnGap * 2;
+    int totalBtns = btnW * 4 + btnGap * 3;
     int startX = (mClientRect.right - totalBtns) / 2;
 
     HWND hReplace = CreateWindowExW(0, WC_BUTTONW, L"Replace",
@@ -75,14 +76,19 @@ ConflictResolution ConflictDialog::Show(HWND parent, const std::wstring& fileNam
         startX, btnY, btnW, 26,
         mHWND, reinterpret_cast<HMENU>(IDM_CONFLICT_REPLACE), hInstance, NULL);
 
-    HWND hKeepBoth = CreateWindowExW(0, WC_BUTTONW, L"Keep Both",
+    HWND hReplaceAll = CreateWindowExW(0, WC_BUTTONW, L"Replace All",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
         startX + btnW + btnGap, btnY, btnW, 26,
+        mHWND, reinterpret_cast<HMENU>(IDM_CONFLICT_REPLACE_ALL), hInstance, NULL);
+
+    HWND hKeepBoth = CreateWindowExW(0, WC_BUTTONW, L"Keep Both",
+        WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+        startX + (btnW + btnGap) * 2, btnY, btnW, 26,
         mHWND, reinterpret_cast<HMENU>(IDM_CONFLICT_KEEP_BOTH), hInstance, NULL);
 
     HWND hSkip = CreateWindowExW(0, WC_BUTTONW, L"Skip",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        startX + (btnW + btnGap) * 2, btnY, btnW, 26,
+        startX + (btnW + btnGap) * 3, btnY, btnW, 26,
         mHWND, reinterpret_cast<HMENU>(IDM_CONFLICT_SKIP), hInstance, NULL);
 
     SetFocus(hReplace);
@@ -194,6 +200,11 @@ void ConflictDialog::OnCommand(int id) {
     switch (id) {
         case IDM_CONFLICT_REPLACE: {
             mResult = ConflictResolution::Replace;
+            DestroyWindow(mHWND);
+            break;
+        }
+        case IDM_CONFLICT_REPLACE_ALL: {
+            mResult = ConflictResolution::ReplaceAll;
             DestroyWindow(mHWND);
             break;
         }

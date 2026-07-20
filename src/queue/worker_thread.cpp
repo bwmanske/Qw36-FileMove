@@ -36,6 +36,7 @@ WorkerThread::WorkerThread()
     , mShutdownAction(ShutdownAction::None)
     , mProcessedCount(0)
     , mCurrentState(WorkerState::Idle)
+    , mReplaceAllActive(false)
 {
 }
 
@@ -205,6 +206,12 @@ static void CreateParentDirectories(const std::wstring& filePath) {
 }
 
 void WorkerThread::ProcessEntry(const PendingMoveEntry& entry) {
+    // Reset replace-all when group changes
+    if (entry.groupId != mLastGroupId) {
+        mLastGroupId = entry.groupId;
+        mReplaceAllActive = false;
+    }
+
     mCurrentFile = entry.sourceFilePath;
     UpdateState(WorkerState::Moving, entry.sourceFilePath);
 
@@ -423,9 +430,19 @@ bool WorkerThread::RemoveSourceFile(const std::string& sourceFile) {
 }
 
 ConflictResolution WorkerThread::HandleConflict(const std::string& sourceFile,
-                                                const std::string& destFile) {
+                                                 const std::string& destFile) {
+    // If replace-all is active for this group, skip the dialog
+    if (mReplaceAllActive) {
+        return ConflictResolution::Replace;
+    }
+
     if (mConflictCallback) {
-        return mConflictCallback(sourceFile, destFile);
+        ConflictResolution result = mConflictCallback(sourceFile, destFile);
+        if (result == ConflictResolution::ReplaceAll) {
+            mReplaceAllActive = true;
+            return ConflictResolution::Replace;
+        }
+        return result;
     }
     // Default to Replace if no callback
     return ConflictResolution::Replace;

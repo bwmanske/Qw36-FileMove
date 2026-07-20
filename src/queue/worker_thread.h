@@ -22,6 +22,7 @@ enum class ShutdownAction {
 
 enum class ConflictResolution {
     Replace,
+    ReplaceAll,
     KeepBoth,
     Skip
 };
@@ -141,6 +142,10 @@ private:
     ConflictCallback mConflictCallback;
     ErrorPauseCallback mErrorPauseCallback;
     WorkerStateChangedCallback mStateChangedCallback;
+
+    // Replace-all state, scoped to current group
+    bool mReplaceAllActive;
+    std::string mLastGroupId;
 };
 
 // Global worker thread instance
