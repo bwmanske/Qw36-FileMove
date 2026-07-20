@@ -88,7 +88,7 @@ STDMETHODIMP DropTarget::DragLeave() {
 }
 
 STDMETHODIMP DropTarget::Drop(IDataObject* pDataObj, DWORD grfKeyState,
-                                  POINTL pt, DWORD* pdwEffect) {
+                                   POINTL pt, DWORD* pdwEffect) {
     *pdwEffect = DROPEFFECT_NONE;
 
     std::vector<std::wstring> droppedFiles = GetDroppedFiles(pDataObj);
@@ -114,11 +114,12 @@ STDMETHODIMP DropTarget::Drop(IDataObject* pDataObj, DWORD grfKeyState,
 
     std::vector<std::string> files;
     for (const auto& f : droppedFiles) {
-        int len = WideCharToMultiByte(CP_UTF8, 0, f.c_str(), (int)f.size(), NULL, 0, NULL, NULL);
-        if (len <= 0) continue;
+        // Convert UTF-16 to UTF-8
+        int utf8Len = WideCharToMultiByte(CP_UTF8, 0, f.c_str(), (int)f.size(), NULL, 0, NULL, NULL);
+        if (utf8Len <= 0) continue;
         std::string narrow;
-        narrow.resize(len);
-        WideCharToMultiByte(CP_UTF8, 0, f.c_str(), (int)f.size(), &narrow[0], len, NULL, NULL);
+        narrow.resize(utf8Len);
+        WideCharToMultiByte(CP_UTF8, 0, f.c_str(), (int)f.size(), &narrow[0], utf8Len, NULL, NULL);
         files.push_back(narrow);
     }
 

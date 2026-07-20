@@ -593,11 +593,11 @@ LRESULT CALLBACK MainWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
                         wchar_t path[MAX_PATH];
                         UINT len = DragQueryFileW(hDrop, i, path, _countof(path));
                         if (len > 0 && len < _countof(path)) {
+                            int utf8Len = WideCharToMultiByte(CP_UTF8, 0, path, (int)len, NULL, 0, NULL, NULL);
+                            if (utf8Len <= 0) continue;
                             std::string narrow;
-                            narrow.reserve(len);
-                            for (UINT j = 0; j < len; j++) {
-                                narrow += static_cast<char>(path[j]);
-                            }
+                            narrow.resize(utf8Len);
+                            WideCharToMultiByte(CP_UTF8, 0, path, (int)len, &narrow[0], utf8Len, NULL, NULL);
                             files.push_back(narrow);
                         }
                     }
@@ -1391,11 +1391,11 @@ void MainWindow::OnUseClipboard() {
         wchar_t path[MAX_PATH];
         UINT len = DragQueryFileW(hDrop, i, path, _countof(path));
         if (len > 0 && len < _countof(path)) {
+            int utf8Len = WideCharToMultiByte(CP_UTF8, 0, path, (int)len, NULL, 0, NULL, NULL);
+            if (utf8Len <= 0) continue;
             std::string narrow;
-            narrow.reserve(len);
-            for (UINT j = 0; j < len; j++) {
-                narrow += static_cast<char>(path[j]);
-            }
+            narrow.resize(utf8Len);
+            WideCharToMultiByte(CP_UTF8, 0, path, (int)len, &narrow[0], utf8Len, NULL, NULL);
             files.push_back(narrow);
         }
     }
