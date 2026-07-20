@@ -981,8 +981,9 @@ Compatibility rule:
 
 ### File conflicts
 
-- If a file already exists in the destination, show the File Conflict dialog with three options:
+- If a file already exists in the destination, show the File Conflict dialog with four options:
   - `Replace` — Overwrites the existing destination file with the source file.
+  - `Replace All` — Overwrites the current file and all remaining conflicting files for the rest of the current batch (drop or clipboard operation). The effect is scoped to the batch and resets when a new batch starts.
   - `Keep Both` — Renames the new file by appending `(1)`, `(2)`, etc. before the extension. Example: `Report (1).pdf`. If that name also exists, increments until a unique name is found.
   - `Skip` — Skips this file. The source file remains in place. The destination file is untouched.
 - Show per-file success and failure after completion.
@@ -1147,7 +1148,7 @@ All image assets must be embedded directly into the executable at build time. Th
 - Validate clipboard contents and destination path before `Use Clipboard` moves files
 - Validate source files and all destination directories before any dropped or clipboard batch is released to move
 - Optionally allow directory drops and clipboard directory entries to expand into recursive file moves
-- Show a File Conflict dialog when a destination file already exists, with `Replace`, `Keep Both`, and `Skip` options
+- Show a File Conflict dialog when a destination file already exists, with `Replace`, `Replace All`, `Keep Both`, and `Skip` options
 - Preserve directory structure at destination when the "Preserve directory structure" option is enabled
 - Create empty directories at destination when both "Preserve directory structure" and "Create empty directories" options are enabled
 - Queue all files in a batch before releasing any file to the move worker thread

@@ -475,19 +475,19 @@ FileMove/
 ## File Conflict Dialog
 
 ```text
-+-----------------------------------------------------------+
-| File Conflict                                         [X] |
-|-----------------------------------------------------------|
-| The following file already exists in the destination:      |
-|                                                           |
-|   Report.pdf                                               |
-|                                                           |
-|   Destination: Z:\Accounting\Invoices\Report.pdf           |
-|                                                           |
-| How would you like to handle this conflict?               |
-|                                                           |
-|              [Replace]  [Keep Both]  [Skip]               |
-+-----------------------------------------------------------+
++------------------------------------------------------------------+
+| File Conflict                                              [X]   |
+|------------------------------------------------------------------|
+| The following file already exists in the destination:             |
+|                                                                  |
+|   Report.pdf                                                      |
+|                                                                  |
+|   Destination: Z:\Accounting\Invoices\Report.pdf                  |
+|                                                                  |
+| How would you like to handle this conflict?                      |
+|                                                                  |
+|        [Replace]  [Replace All]  [Keep Both]  [Skip]             |
++------------------------------------------------------------------+
 ```
 
 ### Notes
@@ -495,8 +495,9 @@ FileMove/
 - This is a modal dialog shown when a source file already exists at the destination path.
 - The file name is shown on the first line.
 - The full destination path is shown on the second line.
-- Three buttons are arranged horizontally:
+- Four buttons are arranged horizontally:
   - `Replace` — Overwrites the existing destination file with the source file.
+  - `Replace All` — Overwrites the current file and all remaining conflicting files for the rest of the current batch (drop or clipboard operation). The effect resets when a new batch starts.
   - `Keep Both` — Renames the new file by appending `(1)`, `(2)`, etc. before the extension. Example: `Report (1).pdf`. If that name also exists, increments until a unique name is found.
   - `Skip` — Skips this file. The source file remains in place. The destination file is untouched.
 - The dialog is compact and modal.

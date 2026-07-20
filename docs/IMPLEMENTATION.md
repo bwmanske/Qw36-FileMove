@@ -482,6 +482,7 @@ Background thread that processes queued file moves with pause/resume, error hand
 
 **Conflict resolution:**
 - `Replace` — Overwrites existing destination file
+- `ReplaceAll` — Overwrites this and all remaining conflicts for the current batch (scoped to `groupId`). Resets when a new batch starts. Internally converts to `Replace` after setting the sticky flag.
 - `KeepBoth` — Renames new file with `(1)`, `(2)`, etc. before extension
 - `Skip` — Skips this destination, source file remains in place
 
@@ -765,6 +766,7 @@ Modal dialog shown when a destination file already exists during a file move.
 **Layout:**
 - Source and destination file paths
 - **Replace** — Overwrites the existing destination file
+- **Replace All** — Overwrites this and all remaining conflicts for the current batch
 - **Keep Both** — Renames the new file with `(1)`, `(2)`, etc. before the extension
 - **Skip** — Skips this destination; source file remains in place
 
@@ -772,6 +774,7 @@ Modal dialog shown when a destination file already exists during a file move.
 - Invoked by the worker thread via `ConflictCallback` for each conflicting destination
 - Custom-drawn with GDI+ background and text rendering
 - Returns the user's choice to the worker thread, which acts accordingly
+- `ReplaceAll` is handled by `WorkerThread::HandleConflict()`: sets `mReplaceAllActive = true` and returns `Replace` for the current conflict. Subsequent conflicts in the same group skip the dialog entirely. Flag resets when `entry.groupId` changes (new batch).
 
 ### `src/window/dialogs/new_file.h/cpp`
 

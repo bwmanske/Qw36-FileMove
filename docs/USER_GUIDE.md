@@ -218,6 +218,7 @@ When a destination file already exists, you will be prompted:
 | Option | Behavior |
 |---|---|
 | **Replace** | Overwrites the existing file |
+| **Replace All** | Overwrites this and all remaining conflicts for the current batch (drop or clipboard operation). Resets when a new batch starts. |
 | **Keep Both** | Renames new file with `(1)`, `(2)`, etc. |
 | **Skip** | Leaves both files untouched |
 
