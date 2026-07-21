@@ -707,16 +707,6 @@ void MainWindow::OnCommand(int id) {
             break;
         }
         case IDM_STATUS: {
-            int queuedCount = gQueueManager.GetQueuedDestinationCount();
-            int processedCount = gWorkerThread.GetProcessedCount();
-            std::wstring workerState;
-            switch (gWorkerThread.GetState()) {
-                case WorkerState::Idle: workerState = L"Idle"; break;
-                case WorkerState::Moving: workerState = L"Moving"; break;
-                case WorkerState::ManualPause: workerState = L"Manual Pause"; break;
-                case WorkerState::PausedError: workerState = L"Paused - Error"; break;
-            }
-
             auto onJsonFileOpen = [this](const std::wstring& jsonPath) -> bool {
                 AppData newData;
                 if (!LoadAppData(jsonPath, newData)) {
@@ -746,10 +736,7 @@ void MainWindow::OnCommand(int id) {
             };
 
             StatusDialog statusDlg;
-            statusDlg.Show(mHWND, gJsonPath, gLogPath,
-                queuedCount, processedCount, workerState,
-                L"", L"", L"", gWorkerThread.GetState() == WorkerState::ManualPause,
-                onJsonFileOpen);
+            statusDlg.Show(mHWND, gJsonPath, gLogPath, onJsonFileOpen);
             break;
         }
         case IDM_SETTINGS: {

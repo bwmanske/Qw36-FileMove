@@ -1,8 +1,6 @@
 #include "status.h"
 #include "data/file_io.h"
 #include "utils/logging.h"
-#include "queue/queue_manager.h"
-#include "queue/worker_thread.h"
 #include "resources/resource_loader.h"
 #include "new_file.h"
 #include "window/main_window.h"
@@ -51,8 +49,7 @@
 #endif
 
 StatusDialog::StatusDialog()
-    : mHWND(NULL), mJsonListHWND(NULL), mSelectedRow(-1), mCloseRequested(false),
-      mQueuedCount(0), mProcessedCount(0)
+    : mHWND(NULL), mJsonListHWND(NULL), mSelectedRow(-1), mCloseRequested(false)
 {
 }
 
@@ -60,19 +57,9 @@ StatusDialog::~StatusDialog() {
 }
 
 void StatusDialog::Show(HWND parent, const std::wstring& jsonPath, const std::wstring& logPath,
-                        int queuedCount, int processedCount, const std::wstring& workerState,
-                        const std::wstring& currentFile, const std::wstring& currentDest,
-                        const std::wstring& lastError, bool isPaused,
                         JsonFileOpenCallback onJsonFileOpen) {
     mJsonPath = jsonPath;
     mLogPath = logPath;
-    mQueuedCount = queuedCount;
-    mProcessedCount = processedCount;
-    mWorkerState = workerState;
-    mCurrentFile = currentFile;
-    mCurrentDest = currentDest;
-    mLastError = lastError;
-    mIsPaused = isPaused;
     mOnJsonFileOpen = onJsonFileOpen;
     mCloseRequested = false;
 
@@ -98,7 +85,7 @@ void StatusDialog::Show(HWND parent, const std::wstring& jsonPath, const std::ws
         L"FileMoveStatusClass",
         L"Status",
         WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, 550, 420,
+        CW_USEDEFAULT, CW_USEDEFAULT, 550, 320,
         parent, NULL, hInstance, this
     );
 
@@ -126,7 +113,7 @@ void StatusDialog::Show(HWND parent, const std::wstring& jsonPath, const std::ws
         WC_LISTBOXW,
         NULL,
         WS_CHILD | WS_BORDER | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | LBS_NOTIFY,
-        10, 230, mClientRect.right - 20, mClientRect.bottom - 285,
+        10, 130, mClientRect.right - 20, mClientRect.bottom - 185,
         mHWND, reinterpret_cast<HMENU>(IDM_STATUS_JSON_LISTBOX), hInstance, NULL
     );
 
@@ -212,7 +199,6 @@ LRESULT CALLBACK StatusDialog::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
         case WM_CREATE: {
             SetWindowTextW(hwnd, L"Status");
-            SetTimer(hwnd, 1, 500, NULL);
             return 0;
         }
 
@@ -220,43 +206,6 @@ LRESULT CALLBACK StatusDialog::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             int width = LOWORD(lParam);
             int height = HIWORD(lParam);
             instance->OnSize(width, height);
-            break;
-        }
-
-        case WM_TIMER: {
-            if (wParam == 1) {
-                // Refresh status data - only update if state changed
-                int newQueued = gQueueManager.GetQueuedDestinationCount();
-                int newProcessed = gWorkerThread.GetProcessedCount();
-                WorkerState ws = gWorkerThread.GetState();
-                std::wstring newState;
-                switch (ws) {
-                    case WorkerState::Idle: newState = L"Idle"; break;
-                    case WorkerState::Moving: newState = L"Moving"; break;
-                    case WorkerState::ManualPause: newState = L"Manual Pause"; break;
-                    case WorkerState::PausedError: newState = L"Paused - Error"; break;
-                }
-                std::string fileStr = gWorkerThread.GetCurrentFile();
-                std::wstring newFile(fileStr.begin(), fileStr.end());
-                std::string destStr = gWorkerThread.GetCurrentDest();
-                std::wstring newDest(destStr.begin(), destStr.end());
-                std::string errorStr = gWorkerThread.GetLastError();
-                std::wstring newError(errorStr.begin(), errorStr.end());
-                if (newQueued != instance->mQueuedCount ||
-                    newProcessed != instance->mProcessedCount ||
-                    newState != instance->mWorkerState ||
-                    newFile != instance->mCurrentFile ||
-                    newDest != instance->mCurrentDest ||
-                    newError != instance->mLastError) {
-                    instance->mQueuedCount = newQueued;
-                    instance->mProcessedCount = newProcessed;
-                    instance->mWorkerState = newState;
-                    instance->mCurrentFile = newFile;
-                    instance->mCurrentDest = newDest;
-                    instance->mLastError = newError;
-                    InvalidateRect(hwnd, NULL, TRUE);
-                }
-            }
             break;
         }
 
@@ -298,16 +247,10 @@ LRESULT CALLBACK StatusDialog::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
                 instance->OnCommand(IDM_STATUS_OPEN_LOG);
                 break;
             }
-            RECT pauseRect = { instance->mClientRect.right - 80, 185, instance->mClientRect.right - 10, 208 };
-            if (PtInRect(&pauseRect, pt)) {
-                instance->OnCommand(IDM_STATUS_PAUSE_RESUME);
-                break;
-            }
             break;
         }
 
         case WM_DESTROY: {
-            KillTimer(hwnd, 1);
             instance->mHWND = NULL;
             break;
         }
@@ -323,7 +266,7 @@ void StatusDialog::OnSize(int width, int height) {
     GetClientRect(mHWND, &mClientRect);
 
     if (mJsonListHWND) {
-        MoveWindow(mJsonListHWND, 10, 230, mClientRect.right - 20, mClientRect.bottom - 285, TRUE);
+        MoveWindow(mJsonListHWND, 10, 130, mClientRect.right - 20, mClientRect.bottom - 185, TRUE);
     }
 
     int btnY = mClientRect.bottom - 45;
@@ -376,45 +319,9 @@ void StatusDialog::OnPaint(HDC hdc) {
     FrameRect(hdc, &openRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
     DrawTextW(hdc, L"Open", -1, &openRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
-    // Queue Status section
-    SelectObject(hdc, hFont);
-    sectionRect = { 10, 80, 200, 100 };
-    DrawTextW(hdc, L"Queue Status", -1, &sectionRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-
-    SelectObject(hdc, hNormal);
-
-    // Queued / Processed
-    RECT qpRect = { 15, 102, clientRect.right - 10, 122 };
-    std::wstring qpText = L"Queued / Processed: " + std::to_wstring(mQueuedCount) +
-        L" / " + std::to_wstring(mProcessedCount) + L"    Worker State: " + mWorkerState;
-    DrawTextW(hdc, qpText.c_str(), -1, &qpRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-
-    // Current File
-    RECT cfRect = { 15, 122, clientRect.right - 10, 142 };
-    std::wstring cfText = L"Current File:  " + (mCurrentFile.empty() ? L"None" : mCurrentFile);
-    DrawTextW(hdc, cfText.c_str(), -1, &cfRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
-
-    // Current Destination
-    RECT cdRect = { 15, 142, clientRect.right - 10, 162 };
-    std::wstring cdText = L"Current Destination: " + (mCurrentDest.empty() ? L"None" : mCurrentDest);
-    DrawTextW(hdc, cdText.c_str(), -1, &cdRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
-
-    // Last Queue Error
-    RECT leRect = { 15, 162, clientRect.right - 10, 182 };
-    std::wstring leText = L"Last Queue Error: " + (mLastError.empty() ? L"None" : mLastError);
-    DrawTextW(hdc, leText.c_str(), -1, &leRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-
-    // Pause/Resume button
-    RECT pauseRect = { clientRect.right - 80, 185, clientRect.right - 10, 208 };
-    btnBrush = CreateSolidBrush(RGB(220, 220, 230));
-    FillRect(hdc, &pauseRect, btnBrush);
-    DeleteObject(btnBrush);
-    FrameRect(hdc, &pauseRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
-    DrawTextW(hdc, mIsPaused ? L"Resume" : L"Pause", -1, &pauseRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-
     // JSON Files section
     SelectObject(hdc, hFont);
-    sectionRect = { 10, 210, 400, 230 };
+    sectionRect = { 10, 110, 400, 130 };
     DrawTextW(hdc, L"JSON Files In Default Data Directory", -1, &sectionRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
     SelectObject(hdc, hOldFont);
@@ -426,22 +333,6 @@ void StatusDialog::OnCommand(int id) {
     switch (id) {
         case IDM_STATUS_OPEN_LOG: {
             ShellExecuteW(mHWND, L"open", mLogPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
-            break;
-        }
-        case IDM_STATUS_PAUSE_RESUME: {
-            if (mIsPaused) {
-                gWorkerThread.Resume();
-                mIsPaused = false;
-                mWorkerState = L"Idle";
-            } else {
-                gWorkerThread.Pause();
-                mIsPaused = true;
-                mWorkerState = L"Manual Pause";
-            }
-            int queued = gQueueManager.GetQueuedDestinationCount();
-            int processed = gWorkerThread.GetProcessedCount();
-            gMainWindow.UpdateStatusBar(queued, mWorkerState);
-            InvalidateRect(mHWND, NULL, TRUE);
             break;
         }
         case IDM_STATUS_NEW: {

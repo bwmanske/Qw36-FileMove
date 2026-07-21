@@ -49,6 +49,12 @@ private:
     RECT mClientRect;
     std::vector<std::wstring> mDestinations;
     bool mIsPaused;
+    int mQueuedCount;
+    int mProcessedCount;
+    std::wstring mWorkerState;
+    std::wstring mCurrentFile;
+    std::wstring mCurrentDest;
+    std::wstring mLastError;
 };
 
 // Global queue window instance

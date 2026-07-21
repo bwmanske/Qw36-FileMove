@@ -31,7 +31,8 @@
 QueueWindow gQueueWindow;
 
 QueueWindow::QueueWindow()
-    : mHWND(NULL), mListHWND(NULL), mDeleteBtnHWND(NULL), mEmptyBtnHWND(NULL), mCtrlFont(NULL), mIsPaused(false)
+    : mHWND(NULL), mListHWND(NULL), mDeleteBtnHWND(NULL), mEmptyBtnHWND(NULL), mCtrlFont(NULL), mIsPaused(false),
+      mQueuedCount(0), mProcessedCount(0)
 {
 }
 
@@ -59,7 +60,7 @@ HWND QueueWindow::Create(HWND parent, HINSTANCE hInstance) {
         L"FileMoveQueueClass",
         L"Queue",
         WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, 550, 400,
+        CW_USEDEFAULT, CW_USEDEFAULT, 550, 480,
         parent, NULL, hInstance, this
     );
 
@@ -86,7 +87,7 @@ HWND QueueWindow::Create(HWND parent, HINSTANCE hInstance) {
         WC_LISTBOXW,
         NULL,
         WS_CHILD | WS_VISIBLE | WS_BORDER | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | LBS_EXTENDEDSEL,
-        5, 25, mClientRect.right - 10, mClientRect.bottom - 75,
+        5, 125, mClientRect.right - 10, mClientRect.bottom - 175,
         mHWND, NULL, hInstance, NULL
     );
     SendMessageW(mListHWND, WM_SETFONT, reinterpret_cast<WPARAM>(mCtrlFont), MAKELPARAM(TRUE, 0));
@@ -126,6 +127,23 @@ void QueueWindow::UpdateList(const std::vector<std::wstring>& destinations) {
 
     // Sync pause state from worker
     mIsPaused = (gWorkerThread.GetState() == WorkerState::ManualPause);
+
+    // Initialize queue status data
+    mQueuedCount = gQueueManager.GetQueuedDestinationCount();
+    mProcessedCount = gWorkerThread.GetProcessedCount();
+    WorkerState ws = gWorkerThread.GetState();
+    switch (ws) {
+        case WorkerState::Idle: mWorkerState = L"Idle"; break;
+        case WorkerState::Moving: mWorkerState = L"Moving"; break;
+        case WorkerState::ManualPause: mWorkerState = L"Manual Pause"; break;
+        case WorkerState::PausedError: mWorkerState = L"Paused - Error"; break;
+    }
+    std::string fileStr = gWorkerThread.GetCurrentFile();
+    mCurrentFile = std::wstring(fileStr.begin(), fileStr.end());
+    std::string destStr = gWorkerThread.GetCurrentDest();
+    mCurrentDest = std::wstring(destStr.begin(), destStr.end());
+    std::string errorStr = gWorkerThread.GetLastError();
+    mLastError = std::wstring(errorStr.begin(), errorStr.end());
 
     // Update title with count
     std::wstring title = L"Queue (";
@@ -177,6 +195,38 @@ LRESULT CALLBACK QueueWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
             if (wParam == 1) {
                 // Periodic refresh to ensure queue stays in sync
                 PostMessageW(hwnd, WM_QUEUE_REFRESH, 0, 0);
+
+                // Refresh queue status data
+                int newQueued = gQueueManager.GetQueuedDestinationCount();
+                int newProcessed = gWorkerThread.GetProcessedCount();
+                WorkerState ws = gWorkerThread.GetState();
+                std::wstring newState;
+                switch (ws) {
+                    case WorkerState::Idle: newState = L"Idle"; break;
+                    case WorkerState::Moving: newState = L"Moving"; break;
+                    case WorkerState::ManualPause: newState = L"Manual Pause"; break;
+                    case WorkerState::PausedError: newState = L"Paused - Error"; break;
+                }
+                std::string fileStr = gWorkerThread.GetCurrentFile();
+                std::wstring newFile(fileStr.begin(), fileStr.end());
+                std::string destStr = gWorkerThread.GetCurrentDest();
+                std::wstring newDest(destStr.begin(), destStr.end());
+                std::string errorStr = gWorkerThread.GetLastError();
+                std::wstring newError(errorStr.begin(), errorStr.end());
+                if (newQueued != instance->mQueuedCount ||
+                    newProcessed != instance->mProcessedCount ||
+                    newState != instance->mWorkerState ||
+                    newFile != instance->mCurrentFile ||
+                    newDest != instance->mCurrentDest ||
+                    newError != instance->mLastError) {
+                    instance->mQueuedCount = newQueued;
+                    instance->mProcessedCount = newProcessed;
+                    instance->mWorkerState = newState;
+                    instance->mCurrentFile = newFile;
+                    instance->mCurrentDest = newDest;
+                    instance->mLastError = newError;
+                    InvalidateRect(hwnd, NULL, TRUE);
+                }
             }
             break;
         }
@@ -257,7 +307,7 @@ void QueueWindow::OnSize(int width, int height) {
     GetClientRect(mHWND, &mClientRect);
 
     if (mListHWND) {
-        MoveWindow(mListHWND, 5, 25, mClientRect.right - 10, mClientRect.bottom - 75, TRUE);
+        MoveWindow(mListHWND, 5, 125, mClientRect.right - 10, mClientRect.bottom - 175, TRUE);
     }
 
     int btnY = mClientRect.bottom - 45;
@@ -377,6 +427,34 @@ void QueueWindow::OnPaint(HDC hdc) {
     FrameRect(hdc, &pauseRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
     SelectObject(hdc, hNormalFont);
     DrawTextW(hdc, mIsPaused ? L"Resume" : L"Pause", -1, &pauseRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    // Queue Status section
+    SelectObject(hdc, hBoldFont);
+    RECT sectionRect = { 5, 28, 200, 48 };
+    DrawTextW(hdc, L"Queue Status", -1, &sectionRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+    SelectObject(hdc, hNormalFont);
+
+    // Queued / Processed / Worker State
+    RECT qpRect = { 10, 52, clientRect.right - 10, 72 };
+    std::wstring qpText = L"Queued / Processed: " + std::to_wstring(mQueuedCount) +
+        L" / " + std::to_wstring(mProcessedCount) + L"    Worker State: " + mWorkerState;
+    DrawTextW(hdc, qpText.c_str(), -1, &qpRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+    // Current File
+    RECT cfRect = { 10, 72, clientRect.right - 10, 92 };
+    std::wstring cfText = L"Current File:  " + (mCurrentFile.empty() ? L"None" : mCurrentFile);
+    DrawTextW(hdc, cfText.c_str(), -1, &cfRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+
+    // Current Destination
+    RECT cdRect = { 10, 92, clientRect.right - 10, 112 };
+    std::wstring cdText = L"Current Destination: " + (mCurrentDest.empty() ? L"None" : mCurrentDest);
+    DrawTextW(hdc, cdText.c_str(), -1, &cdRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+
+    // Last Queue Error
+    RECT leRect = { 10, 112, clientRect.right - 10, 132 };
+    std::wstring leText = L"Last Queue Error: " + (mLastError.empty() ? L"None" : mLastError);
+    DrawTextW(hdc, leText.c_str(), -1, &leRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
     SelectObject(hdc, hOldFont);
     DeleteObject(hBoldFont);

@@ -8,7 +8,6 @@
 // Button IDs
 enum StatusButtons {
     IDM_STATUS_OPEN_LOG = 4001,
-    IDM_STATUS_PAUSE_RESUME,
     IDM_STATUS_NEW,
     IDM_STATUS_OPEN_SELECTED,
     IDM_STATUS_CLOSE,
@@ -25,9 +24,6 @@ public:
 
     // Show the Status dialog (modal). Auto-closes on successful JSON file open.
     void Show(HWND parent, const std::wstring& jsonPath, const std::wstring& logPath,
-              int queuedCount, int processedCount, const std::wstring& workerState,
-              const std::wstring& currentFile, const std::wstring& currentDest,
-              const std::wstring& lastError, bool isPaused,
               JsonFileOpenCallback onJsonFileOpen);
 
     // Request close (for auto-close after JSON file open)
@@ -47,13 +43,6 @@ private:
     HINSTANCE mHInstance;
     std::wstring mJsonPath;
     std::wstring mLogPath;
-    int mQueuedCount;
-    int mProcessedCount;
-    std::wstring mWorkerState;
-    std::wstring mCurrentFile;
-    std::wstring mCurrentDest;
-    std::wstring mLastError;
-    bool mIsPaused;
     RECT mClientRect;
     HWND mJsonListHWND;
     std::vector<std::wstring> mJsonFiles;
