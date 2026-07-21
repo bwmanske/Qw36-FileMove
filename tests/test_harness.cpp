@@ -7,11 +7,14 @@
 #include <cstdio>
 #include <io.h>
 #include <direct.h>
+#include <atomic>
+#include <thread>
 
 #include "utils/cmdline_parser.h"
 #include "data/file_io.h"
 #include "data/json_parser.h"
 #include "queue/queue_manager.h"
+#include "queue/worker_thread.h"
 
 // Simple test framework
 static int gPassed = 0;
@@ -2206,6 +2209,198 @@ static void TestSourceDestConflictStructure() {
     std::cout << "  source_dest_conflict_structure tests done." << std::endl;
 }
 
+// ==================== Replace All conflict tests ====================
+
+static void TestReplaceAllConflict() {
+    std::cout << "Testing replace_all_conflict..." << std::endl;
+
+    std::wstring testDir = L"C:\\Users\\brad\\AppData\\Local\\Temp\\opencode\\filemove_test";
+    EnsureCleanTestDir(testDir);
+
+    std::wstring srcDir = testDir + L"\\src";
+    std::wstring destDir = testDir + L"\\dest";
+    EnsureDirectoryExists(srcDir);
+    EnsureDirectoryExists(destDir);
+
+    // Test: Replace All suppresses subsequent conflicts in same group
+    {
+        std::atomic<int> callCount(0);
+
+        gWorkerThread.SetConflictCallback([&callCount](const std::string&, const std::string&) -> ConflictResolution {
+            callCount++;
+            return ConflictResolution::ReplaceAll;
+        });
+
+        // Create 3 source files and 3 conflicting destination files
+        for (int i = 0; i < 3; i++) {
+            std::wstring srcFile = srcDir + L"\\file" + std::to_wstring(i) + L".txt";
+            std::wstring destFile = destDir + L"\\file" + std::to_wstring(i) + L".txt";
+            CreateTempFile(srcFile, L"source " + std::to_wstring(i));
+            CreateTempFile(destFile, L"existing " + std::to_wstring(i));
+        }
+
+        std::vector<std::string> sources;
+        for (int i = 0; i < 3; i++) {
+            sources.push_back(WStringToString(srcDir + L"\\file" + std::to_wstring(i) + L".txt"));
+        }
+
+        std::wstring error;
+        bool ok = gQueueManager.PrepareBatch("grp-replaceall-1", sources, {WStringToString(destDir)}, error);
+        ASSERT_TRUE(ok);
+
+        gQueueManager.ReleasePreparedEntries();
+        gWorkerThread.Start();
+
+        // Wait for processing to complete
+        int waitCount = 0;
+        while (!gQueueManager.IsEmpty() && waitCount < 100) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            waitCount++;
+        }
+
+        gWorkerThread.Stop();
+        gWorkerThread.WaitForCompletion();
+
+        // Callback should be called exactly once (ReplaceAll suppresses remaining)
+        ASSERT_EQ(callCount.load(), 1);
+
+        // All 3 files should be at destination with source content
+        for (int i = 0; i < 3; i++) {
+            ASSERT_TRUE(FileExists(destDir + L"\\file" + std::to_wstring(i) + L".txt"));
+        }
+
+        // Clean up destination files for next test
+        for (int i = 0; i < 3; i++) {
+            RemoveFile(destDir + L"\\file" + std::to_wstring(i) + L".txt");
+        }
+    }
+
+    // Test: Replace All resets on group change
+    {
+        std::atomic<int> callCount(0);
+
+        gWorkerThread.SetConflictCallback([&callCount](const std::string&, const std::string&) -> ConflictResolution {
+            callCount++;
+            return ConflictResolution::ReplaceAll;
+        });
+
+        // Batch 1: grp-A with 2 conflicting files
+        for (int i = 0; i < 2; i++) {
+            std::wstring srcFile = srcDir + L"\\a" + std::to_wstring(i) + L".txt";
+            std::wstring destFile = destDir + L"\\a" + std::to_wstring(i) + L".txt";
+            CreateTempFile(srcFile, L"source a" + std::to_wstring(i));
+            CreateTempFile(destFile, L"existing a" + std::to_wstring(i));
+        }
+
+        std::vector<std::string> sourcesA;
+        for (int i = 0; i < 2; i++) {
+            sourcesA.push_back(WStringToString(srcDir + L"\\a" + std::to_wstring(i) + L".txt"));
+        }
+
+        std::wstring error1;
+        bool ok1 = gQueueManager.PrepareBatch("grp-test-A", sourcesA, {WStringToString(destDir)}, error1);
+        ASSERT_TRUE(ok1);
+
+        // Batch 2: grp-B with 2 conflicting files
+        for (int i = 0; i < 2; i++) {
+            std::wstring srcFile = srcDir + L"\\b" + std::to_wstring(i) + L".txt";
+            std::wstring destFile = destDir + L"\\b" + std::to_wstring(i) + L".txt";
+            CreateTempFile(srcFile, L"source b" + std::to_wstring(i));
+            CreateTempFile(destFile, L"existing b" + std::to_wstring(i));
+        }
+
+        std::vector<std::string> sourcesB;
+        for (int i = 0; i < 2; i++) {
+            sourcesB.push_back(WStringToString(srcDir + L"\\b" + std::to_wstring(i) + L".txt"));
+        }
+
+        std::wstring error2;
+        bool ok2 = gQueueManager.PrepareBatch("grp-test-B", sourcesB, {WStringToString(destDir)}, error2);
+        ASSERT_TRUE(ok2);
+
+        gQueueManager.ReleasePreparedEntries();
+        gWorkerThread.Start();
+
+        int waitCount = 0;
+        while (!gQueueManager.IsEmpty() && waitCount < 100) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            waitCount++;
+        }
+
+        gWorkerThread.Stop();
+        gWorkerThread.WaitForCompletion();
+
+        // Callback should be called exactly 2 times (once per group, ReplaceAll resets on group change)
+        ASSERT_EQ(callCount.load(), 2);
+
+        // Clean up
+        for (int i = 0; i < 2; i++) {
+            RemoveFile(destDir + L"\\a" + std::to_wstring(i) + L".txt");
+            RemoveFile(destDir + L"\\b" + std::to_wstring(i) + L".txt");
+        }
+    }
+
+    // Test: Replace All only triggers for conflicting files
+    {
+        std::atomic<int> callCount(0);
+
+        gWorkerThread.SetConflictCallback([&callCount](const std::string&, const std::string&) -> ConflictResolution {
+            callCount++;
+            return ConflictResolution::ReplaceAll;
+        });
+
+        // Create 2 source files, only 1 has a conflict at destination
+        std::wstring src1 = srcDir + L"\\noconflict.txt";
+        std::wstring src2 = srcDir + L"\\hasconflict.txt";
+        CreateTempFile(src1, L"no conflict");
+        CreateTempFile(src2, L"has conflict");
+        CreateTempFile(destDir + L"\\hasconflict.txt", L"existing conflict");
+
+        std::vector<std::string> sources;
+        sources.push_back(WStringToString(src1));
+        sources.push_back(WStringToString(src2));
+
+        std::wstring error;
+        bool ok = gQueueManager.PrepareBatch("grp-partial", sources, {WStringToString(destDir)}, error);
+        ASSERT_TRUE(ok);
+
+        gQueueManager.ReleasePreparedEntries();
+        gWorkerThread.Start();
+
+        int waitCount = 0;
+        while (!gQueueManager.IsEmpty() && waitCount < 100) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            waitCount++;
+        }
+
+        gWorkerThread.Stop();
+        gWorkerThread.WaitForCompletion();
+
+        // Callback should be called exactly once (only for the conflicting file)
+        ASSERT_EQ(callCount.load(), 1);
+
+        // Both files should be at destination
+        ASSERT_TRUE(FileExists(destDir + L"\\noconflict.txt"));
+        ASSERT_TRUE(FileExists(destDir + L"\\hasconflict.txt"));
+
+        // Clean up
+        RemoveFile(destDir + L"\\noconflict.txt");
+        RemoveFile(destDir + L"\\hasconflict.txt");
+    }
+
+    // Clean up source files
+    auto srcFiles = EnumerateDirectoryFiles(srcDir);
+    for (const auto& f : srcFiles) {
+        RemoveFile(f);
+    }
+
+    RemoveDirectoryTree(destDir);
+    RemoveDirectoryTree(srcDir);
+    RemoveDirectoryTree(testDir);
+
+    std::cout << "  replace_all_conflict tests done." << std::endl;
+}
+
 // ==================== Main ====================
 
 int main() {
@@ -2222,6 +2417,7 @@ int main() {
     TestSettingsJsonRoundTrip();
     TestFindEmptyDirectories();
     TestSourceDestConflictStructure();
+    TestReplaceAllConflict();
 
     std::cout << "==============================" << std::endl;
     std::cout << "Results: " << gPassed << " passed, " << gFailed << " failed" << std::endl;

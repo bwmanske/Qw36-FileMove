@@ -124,6 +124,7 @@ add_executable(test_harness
     src/data/file_io.cpp
     src/data/json_parser.cpp
     src/queue/queue_manager.cpp
+    src/queue/worker_thread.cpp
 )
 
 target_include_directories(test_harness PRIVATE
