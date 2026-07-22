@@ -637,8 +637,8 @@ void MainWindow::OnHeaderRightClick(POINT pt) {
     queueLabel += std::to_wstring(queuedCount);
     queueLabel += L")";
 
+    AppendMenuW(hMenu, MF_STRING, IDM_STATUS, L"Active JSON");
     AppendMenuW(hMenu, MF_STRING, IDM_QUEUE_WINDOW, queueLabel.c_str());
-    AppendMenuW(hMenu, MF_STRING, IDM_STATUS, L"Status");
     AppendMenuW(hMenu, MF_STRING, IDM_SETTINGS, L"Settings");
     AppendMenuW(hMenu, MF_STRING, IDM_SEARCH, L"Search");
     AppendMenuW(hMenu, MF_STRING, IDM_ABOUT, L"About");

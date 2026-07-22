@@ -83,7 +83,7 @@ void StatusDialog::Show(HWND parent, const std::wstring& jsonPath, const std::ws
     mHWND = CreateWindowExW(
         0,
         L"FileMoveStatusClass",
-        L"Status",
+        L"Active JSON",
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT, 550, 320,
         parent, NULL, hInstance, this
@@ -198,7 +198,7 @@ LRESULT CALLBACK StatusDialog::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         }
 
         case WM_CREATE: {
-            SetWindowTextW(hwnd, L"Status");
+            SetWindowTextW(hwnd, L"Active JSON");
             return 0;
         }
 

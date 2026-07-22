@@ -87,7 +87,7 @@ HWND QueueWindow::Create(HWND parent, HINSTANCE hInstance) {
         WC_LISTBOXW,
         NULL,
         WS_CHILD | WS_VISIBLE | WS_BORDER | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | LBS_EXTENDEDSEL,
-        5, 125, mClientRect.right - 10, mClientRect.bottom - 175,
+        5, 118, mClientRect.right - 10, mClientRect.bottom - 165,
         mHWND, NULL, hInstance, NULL
     );
     SendMessageW(mListHWND, WM_SETFONT, reinterpret_cast<WPARAM>(mCtrlFont), MAKELPARAM(TRUE, 0));
@@ -278,7 +278,7 @@ LRESULT CALLBACK QueueWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
         case WM_LBUTTONDOWN: {
             POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
             GetClientRect(hwnd, &instance->mClientRect);
-            RECT pauseRect = { instance->mClientRect.right - 80, 2, instance->mClientRect.right - 10, 22 };
+            RECT pauseRect = { instance->mClientRect.right - 80, 95, instance->mClientRect.right - 10, 115 };
             if (PtInRect(&pauseRect, pt)) {
                 instance->OnCommand(IDM_QUEUE_PAUSE_RESUME);
                 break;
@@ -307,7 +307,7 @@ void QueueWindow::OnSize(int width, int height) {
     GetClientRect(mHWND, &mClientRect);
 
     if (mListHWND) {
-        MoveWindow(mListHWND, 5, 125, mClientRect.right - 10, mClientRect.bottom - 175, TRUE);
+        MoveWindow(mListHWND, 5, 118, mClientRect.right - 10, mClientRect.bottom - 165, TRUE);
     }
 
     int btnY = mClientRect.bottom - 45;
@@ -415,46 +415,40 @@ void QueueWindow::OnPaint(HDC hdc) {
         CLEARTYPE_QUALITY, VARIABLE_PITCH, L"Segoe UI");
     HFONT hOldFont = (HFONT)SelectObject(hdc, hBoldFont);
 
-    RECT headerRect = { 5, 2, clientRect.right - 90, 22 };
-    std::wstring heading = L"Queued Destinations (" + std::to_wstring(mDestinations.size()) + L")";
-    DrawTextW(hdc, heading.c_str(), -1, &headerRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-
-    // Pause/Resume button
-    RECT pauseRect = { clientRect.right - 80, 2, clientRect.right - 10, 22 };
-    HBRUSH btnBrush = CreateSolidBrush(RGB(220, 220, 230));
-    FillRect(hdc, &pauseRect, btnBrush);
-    DeleteObject(btnBrush);
-    FrameRect(hdc, &pauseRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
-    SelectObject(hdc, hNormalFont);
-    DrawTextW(hdc, mIsPaused ? L"Resume" : L"Pause", -1, &pauseRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-
     // Queue Status section
-    SelectObject(hdc, hBoldFont);
-    RECT sectionRect = { 5, 28, 200, 48 };
+    RECT sectionRect = { 5, 5, 200, 25 };
     DrawTextW(hdc, L"Queue Status", -1, &sectionRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
     SelectObject(hdc, hNormalFont);
 
     // Queued / Processed / Worker State
-    RECT qpRect = { 10, 52, clientRect.right - 10, 72 };
+    RECT qpRect = { 10, 25, clientRect.right - 10, 42 };
     std::wstring qpText = L"Queued / Processed: " + std::to_wstring(mQueuedCount) +
         L" / " + std::to_wstring(mProcessedCount) + L"    Worker State: " + mWorkerState;
     DrawTextW(hdc, qpText.c_str(), -1, &qpRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
     // Current File
-    RECT cfRect = { 10, 72, clientRect.right - 10, 92 };
+    RECT cfRect = { 10, 42, clientRect.right - 10, 59 };
     std::wstring cfText = L"Current File:  " + (mCurrentFile.empty() ? L"None" : mCurrentFile);
     DrawTextW(hdc, cfText.c_str(), -1, &cfRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
     // Current Destination
-    RECT cdRect = { 10, 92, clientRect.right - 10, 112 };
+    RECT cdRect = { 10, 59, clientRect.right - 10, 76 };
     std::wstring cdText = L"Current Destination: " + (mCurrentDest.empty() ? L"None" : mCurrentDest);
     DrawTextW(hdc, cdText.c_str(), -1, &cdRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
     // Last Queue Error
-    RECT leRect = { 10, 112, clientRect.right - 10, 132 };
+    RECT leRect = { 10, 76, clientRect.right - 10, 93 };
     std::wstring leText = L"Last Queue Error: " + (mLastError.empty() ? L"None" : mLastError);
     DrawTextW(hdc, leText.c_str(), -1, &leRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+    // Pause/Resume button (just above listbox)
+    RECT pauseRect = { clientRect.right - 80, 95, clientRect.right - 10, 115 };
+    HBRUSH btnBrush = CreateSolidBrush(RGB(220, 220, 230));
+    FillRect(hdc, &pauseRect, btnBrush);
+    DeleteObject(btnBrush);
+    FrameRect(hdc, &pauseRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+    DrawTextW(hdc, mIsPaused ? L"Resume" : L"Pause", -1, &pauseRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
     SelectObject(hdc, hOldFont);
     DeleteObject(hBoldFont);
