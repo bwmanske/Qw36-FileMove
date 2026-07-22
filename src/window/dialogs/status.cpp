@@ -40,6 +40,10 @@
 #define LBN_SELCHANGE 0
 #endif
 
+#ifndef LBN_DBLCLK
+#define LBN_DBLCLK (-452)
+#endif
+
 #ifndef GET_X_LPARAM
 #define GET_X_LPARAM(lp) ((int)(short)LOWORD(lp))
 #endif
@@ -223,6 +227,12 @@ LRESULT CALLBACK StatusDialog::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             if (id == IDM_STATUS_JSON_LISTBOX && code == LBN_SELCHANGE) {
                 int sel = static_cast<int>(SendMessageW(instance->mJsonListHWND, LB_GETCURSEL, 0, 0));
                 instance->mSelectedRow = sel;
+                break;
+            }
+            if (id == IDM_STATUS_JSON_LISTBOX && code == LBN_DBLCLK) {
+                int sel = static_cast<int>(SendMessageW(instance->mJsonListHWND, LB_GETCURSEL, 0, 0));
+                instance->mSelectedRow = sel;
+                instance->OnCommand(IDM_STATUS_OPEN_SELECTED);
                 break;
             }
             instance->OnCommand(id);
