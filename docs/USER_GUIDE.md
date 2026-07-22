@@ -45,6 +45,7 @@ FileMove is a compact Windows utility that stores named destination groups for f
 2. Right-click a group row in FileMove
 3. Select **Use Clipboard**
 4. Files are validated and moved
+5. Clipboard is cleared after successful use
 
 ## Main Window
 
@@ -104,6 +105,7 @@ Accessed via gear button > `Active JSON`. Shows:
 - **Open** button on the LOG line to launch the log file in the default editor
 - **JSON file list**: All `.json` files in the data directory
 - **Open Selected**: Switch to the selected JSON file
+- **Double-click** a list entry: Same as selecting and clicking "Open Selected"
 - **New**: Create a new JSON file (base name only)
 - **Close** button
 

@@ -87,6 +87,6 @@
 - [x] Phase 4: Main Window
 - [x] Phase 5: Dialogs
 - [x] Phase 6: Explorer Integration
-- [x] Phase 7: Polish & Integration (including unit tests: 189 tests, 0 failures)
+- [x] Phase 7: Polish & Integration (including unit tests: 320 tests, 0 failures)
 - [x] Phase 8: Documentation (BUILDING.md, TESTING.md, USER_GUIDE.md populated)
 - [x] Phase 9: Embedded Resources (all assets embedded in .exe, icon visible in Explorer)

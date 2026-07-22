@@ -2,7 +2,7 @@
 
 ## Unit Tests
 
-The test harness (`tests/test_harness.cpp`) provides 308 unit tests across ten modules. Tests run as a console application with no external dependencies.
+The test harness (`tests/test_harness.cpp`) provides 320 unit tests across ten modules. Tests run as a console application with no external dependencies.
 
 ### Running Tests
 
@@ -34,7 +34,7 @@ Testing cmdline_parser...
   cmdline_parser tests done.
 ...
 ==============================
-Results: 308 passed, 0 failed
+Results: 320 passed, 0 failed
 ```
 
 ### Module: cmdline_parser (45 tests)
@@ -170,6 +170,8 @@ These scenarios require manual execution of the built application.
 3. Verify files are moved to the destination
 4. For `Cut` operations, verify source files are removed
 5. For `Copy` operations, verify source files remain
+6. Verify clipboard is cleared after successful use
+7. Verify multiple consecutive "Use Clipboard" operations work without crash
 
 ### Scenario 3: Queue Processing
 

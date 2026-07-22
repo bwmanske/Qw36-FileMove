@@ -177,7 +177,7 @@ FileMove/
 │   └── nlohmann/
 │       └── json.hpp                  # nlohmann/json v3.11.3 (header-only)
 ├── tests/
-│   └── test_harness.cpp              # (Phase 7) Unit tests (308 tests)
+│   └── test_harness.cpp              # (Phase 7) Unit tests (320 tests)
 ├── assets/
 │   ├── icons/
 │   │   ├── FileMove-icon.ico         # Application icon (embedded at build)
@@ -663,6 +663,7 @@ Modal Active JSON window showing active files and JSON file list.
 - "Open" button launches log file in default editor via `ShellExecuteW`
 - "New" opens New File dialog, creates/opens JSON file, auto-closes Active JSON on success
 - "Open Selected" loads the selected JSON file, switches active log file, auto-closes Active JSON on success
+- Double-clicking a list entry triggers the same action as "Open Selected"
 - JSON file list auto-selects the currently active file
 - `RequestClose()` allows external code to close the dialog (used for auto-close)
 
@@ -859,11 +860,13 @@ Clipboard paste handler for the "Use Clipboard" context menu item.
 3. Gets `HGLOBAL` via `GetClipboardData(CF_HDROP)`, casts to `HDROP`
 4. Closes clipboard immediately after getting handle
 5. Extracts file paths via `DragQueryFileW`
-6. Cleans up with `DragFinish(hDrop)`
-7. Gets selected group from `mGroupList.GetSelectedGroupId()`
-8. Calls `gQueueManager.PrepareBatch()` with files and group destinations
-9. On success, calls `gQueueManager.ReleasePreparedEntries()`
+6. Gets selected group from `mGroupList.GetSelectedGroupId()`
+7. Calls `gQueueManager.PrepareBatch()` with files and group destinations
+8. On success, calls `gQueueManager.ReleasePreparedEntries()`
+9. Clears clipboard via `EmptyClipboard()` after successful batch
 10. Updates group `lastUsedAt` and saves JSON
+
+**Important:** `DragFinish()` must NOT be called on an `HDROP` obtained from `GetClipboardData()`. `DragFinish()` is only valid for handles from OLE drag-and-drop (`DoDragDrop`). Calling it on clipboard data corrupts the global heap, causing a silent crash on the next clipboard access.
 
 **Error handling:**
 - Clipboard not available: shows error message
@@ -1129,7 +1132,7 @@ All assets are embedded into the executable at build time via a Windows resource
 **Run:** `build/Release/test_harness.exe`
 **CMake:** `ctest --config Release`
 
-### Test Coverage (308 tests)
+### Test Coverage (320 tests)
 
 **cmdline_parser (45 tests):**
 - Empty command line, valid/invalid `/D` values (MV, CP, case insensitive)
@@ -1205,6 +1208,7 @@ All assets are embedded into the executable at build time via a Windows resource
 
 1. **`EnsureDirectoryExists` logic error** — `_waccess` return value was negated incorrectly (`!_waccess()` instead of `_waccess() != 0`), preventing directory creation
 2. **`cmdline_parser` non-prefixed tokens** — Tokens without `/` or `-` prefix were treated as errors instead of being skipped per spec
+3. **Clipboard `DragFinish` crash** — `DragFinish()` was called on an `HDROP` from `GetClipboardData()`, which is only valid for OLE drag-and-drop handles. This corrupted the heap, causing a silent crash on the second "Use Clipboard" operation. Fixed by removing `DragFinish()` and adding `EmptyClipboard()` after successful batch preparation.
 
 ## Phase 8: Documentation & Embedded Resources
 
