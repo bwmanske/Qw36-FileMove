@@ -113,7 +113,7 @@ void StatusDialog::Show(HWND parent, const std::wstring& jsonPath, const std::ws
         WC_LISTBOXW,
         NULL,
         WS_CHILD | WS_BORDER | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | LBS_NOTIFY,
-        10, 130, mClientRect.right - 20, mClientRect.bottom - 185,
+        10, 105, mClientRect.right - 20, mClientRect.bottom - 160,
         mHWND, reinterpret_cast<HMENU>(IDM_STATUS_JSON_LISTBOX), hInstance, NULL
     );
 
@@ -266,7 +266,7 @@ void StatusDialog::OnSize(int width, int height) {
     GetClientRect(mHWND, &mClientRect);
 
     if (mJsonListHWND) {
-        MoveWindow(mJsonListHWND, 10, 130, mClientRect.right - 20, mClientRect.bottom - 185, TRUE);
+        MoveWindow(mJsonListHWND, 10, 105, mClientRect.right - 20, mClientRect.bottom - 160, TRUE);
     }
 
     int btnY = mClientRect.bottom - 45;
@@ -321,7 +321,7 @@ void StatusDialog::OnPaint(HDC hdc) {
 
     // JSON Files section
     SelectObject(hdc, hFont);
-    sectionRect = { 10, 110, 400, 130 };
+    sectionRect = { 10, 85, 400, 105 };
     DrawTextW(hdc, L"JSON Files In Default Data Directory", -1, &sectionRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
     SelectObject(hdc, hOldFont);
