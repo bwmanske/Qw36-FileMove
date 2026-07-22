@@ -213,6 +213,7 @@ FileMove/
 - The bottom row includes `New` and `Open Selected`.
 - `New` creates or opens a JSON file by base name only in the default data directory.
 - Selecting a JSON file and choosing `Open Selected` immediately opens that JSON file.
+- Double-clicking a JSON file entry in the list has the same effect as selecting it and clicking `Open Selected`.
 - After `Open Selected` succeeds, the Active JSON window closes automatically.
 - Opening a JSON file from this list also switches the active `.log` file to the matching base-name `.log` file in the default data directory.
 - If `New` succeeds, the Active JSON window also closes automatically.
@@ -365,6 +366,7 @@ FileMove/
  
 - Right click on any actual group row opens this menu.
 - `Use Clipboard` validates clipboard files and all destination folders before queueing the batch.
+- After successfully queueing the batch, the clipboard is cleared to prevent stale file references on subsequent use.
 - `Edit` opens the Edit Group window populated with the selected group's values.
 - `Delete...` should include confirmation before removing the group entry.
  

@@ -164,6 +164,7 @@ Active JSON window behavior:
 - The Active JSON window must include a `New` button beside `Open Selected`.
 - The `New` button must allow creation of a new JSON file without leaving the app.
 - Selecting one of those JSON files opens that JSON file immediately.
+- Double-clicking a JSON file entry in the list has the same effect as selecting it and clicking `Open Selected`.
 - If the selected JSON file exists but has length `0`, open it as an empty/default settings file instead of reporting an error.
 - When a new or empty JSON file is opened, the `Options` settings must default to `false` for all 5 options.
 - After a JSON file is opened successfully from that list, the Active JSON window should close automatically.
@@ -890,6 +891,7 @@ Compatibility rule:
 - Continue processing all clipboard files until all files are either queued or an error is found.
 - If any error is detected while preparing the batch, remove all queued entries created for that batch and display the error.
 - If no errors are detected, release the queued entries to be moved by the move worker thread.
+- After successfully releasing the clipboard batch, clear the clipboard to prevent stale file references on subsequent use.
 
 ### Queue and release behavior
 
