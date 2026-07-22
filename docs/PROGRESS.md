@@ -30,9 +30,9 @@
 ### Phase 5: Dialogs
 16. src/window/dialogs/group_editor.h/cpp — Add/Modify group window with name field, destination list with 3-state icons, Add/Delete buttons, validation
 17. src/window/dialogs/about.h/cpp — About window with 128x128 image, version, build date, command line
-18. src/window/dialogs/status.h/cpp — Status window with Active Files, Queue Status (Pause/Resume), JSON file list, New/Open Selected, auto-close on success
+18. src/window/dialogs/status.h/cpp — Active JSON window with Active Files, JSON file list, New/Open Selected, auto-close on success
 19. src/window/dialogs/settings.h/cpp — Settings window with sort radios, placement radios, startup preview, Options checkboxes
-20. src/window/dialogs/queue_window.h/cpp — Modeless Queue window with live-updating destination list
+20. src/window/dialogs/queue_window.h/cpp — Modeless Queue window with Queue Status section, Pause/Resume button, and live-updating destination list
 21. src/window/dialogs/search.h/cpp — Search dialog (from header menu)
 22. src/window/dialogs/shutdown.h/cpp — Shutdown prompt with 3 choices
 23. src/window/dialogs/new_file.h/cpp — New JSON file dialog (base name only)

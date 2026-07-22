@@ -119,8 +119,8 @@ Why:
 - Right click on either button has no action.
 
 
+- `Active JSON` opens the Active JSON window.
 - `Queue Window` opens a non-modal Queue window.
-- `Status` opens the Status window.
 - `Settings` opens the settings window, which includes the sort-order selection and placement options.
 - `About` opens the About window.
 - The `Queue Window` menu label should show the current queued destination count in parentheses.
@@ -146,43 +146,38 @@ About window behavior:
 - The About window should use the application icon.
 - The About window must not be resizable. It maintains the size it is created with.
 
-### Status window
- 
-Add a separate `Status` window opened from the gear icon button context menu.
- 
-The top section of the Status window must show:
+### Active JSON window
+
+Add a separate `Active JSON` window opened from the gear icon button context menu.
+
+The top section of the Active JSON window must show:
 
 
 - Currently open JSON file full path
 - Currently open `.log` file full path
 - An `Open` button on the `LOG` line to open the active `.log` file in the default editor
 
-Status window behavior:
+Active JSON window behavior:
 
 - The user must be able to switch to another JSON file without restarting the app.
-- The Status window must show a list of JSON files found in the default data directory.
-- The Status window must include a `New` button beside `Open Selected`.
+- The Active JSON window must show a list of JSON files found in the default data directory.
+- The Active JSON window must include a `New` button beside `Open Selected`.
 - The `New` button must allow creation of a new JSON file without leaving the app.
 - Selecting one of those JSON files opens that JSON file immediately.
 - If the selected JSON file exists but has length `0`, open it as an empty/default settings file instead of reporting an error.
 - When a new or empty JSON file is opened, the `Options` settings must default to `false` for all 5 options.
-- After a JSON file is opened successfully from that list, the Status window should close automatically.
+- After a JSON file is opened successfully from that list, the Active JSON window should close automatically.
 - When a JSON file is opened from that list, the active `.log` file must become a file with the same base name and the `.log` extension, located in the default data directory.
 - The `New` button must accept only a base name, not a path.
 - If the user attempts to include a path, reject it and keep the user in the new-file dialog.
 - When `New` is used, create or open `<BaseName>.json` in the default data directory.
 - When `New` is used, create or open `<BaseName>.log` in the default data directory.
 - If the requested base name already exists in the default data directory, switch to that file exactly as though it had been selected and `Open Selected` had been used.
-- After a new JSON file is created or an existing matching JSON file is opened successfully from the `New` action, the Status window should close automatically.
-- The Status window becomes the main place for viewing queue status details.
+- After a new JSON file is created or an existing matching JSON file is opened successfully from the `New` action, the Active JSON window should close automatically.
 - The Active Files section should show the full JSON path and the full `.log` path.
 - The `LOG` line in the Active Files section should include a right-justified `Open` button.
 - Pressing `Open` should launch the active `.log` file in the system's default editor.
-- The Status window should be tall enough to show the Active Files section and at least 5 visible JSON file rows in the default-directory file list.
-- The Queue Status section in the Status window must include a `Pause / Resume` button positioned below `Last Queue Error` and justified to the right.
-- The Queue Status section should show `Queued / Processed:` followed by the current unfinished destination-file count, then `/`, then the count of destination files completed by the worker thread.
-- The `Worker State` field in the Queue Status section must be able to show `Manual Pause`.
-- The `Worker State` field in the Queue Status section must also be able to show a paused-for-error state while waiting for user action.
+- The Active JSON window should be tall enough to show the Active Files section and at least 5 visible JSON file rows in the default-directory file list.
 - When possible, the currently open JSON file base name should also be shown in the main window title bar in parentheses after the app name.
 - Example title bar format: `FileMove (FileMove)`
 
@@ -196,8 +191,8 @@ Queue window behavior:
 - The Queue window must be allowed to remain open while the main window continues accepting drops and moves.
 - The Queue window must update automatically when destination entries are added to the queue.
 - The Queue window must update automatically when destination moves complete and leave the queue.
-- The Queue window should show the current queued destination count in its heading.
-- The Queue window heading must include a `Pause / Resume` button that toggles the worker thread pause state.
+- The Queue window must include a Queue Status section at the top showing: Queued/Processed count, Worker State, Current File, Current Destination, Last Queue Error.
+- The Queue window must include a `Pause / Resume` button positioned just above the listbox that toggles the worker thread pause state.
 - The Queue window must include a `Delete` button below the listbox that removes one or more selected entries from the queue.
 - The Queue window must include an `Empty` button below the listbox that removes all entries from the queue.
 - The `Empty` button must show a confirmation dialog before clearing all entries.
@@ -338,7 +333,7 @@ The Settings window should contain:
 - A checkbox option for an experimental mode that marks queued source files as hidden
 - The Settings window must not be resizable. It maintains the size it is created with.
 
-The Queue Status section should not remain in the Settings window after the Status window is added.
+The Queue Status section should not remain in the Settings window. Queue status is shown in the Queue window.
 
 ## Compact UI layout sketch
 
@@ -681,7 +676,7 @@ Required `---->` records should include:
 - Window size (width x height) at startup
 - Window position (Left, Top) at startup
 - New JSON file creation from the command line, when applicable
-- New JSON file creation from the Status window, when applicable
+- New JSON file creation from the Active JSON window, when applicable
 - Command-line parsing errors, if any
 
 Example transfer record:
@@ -922,8 +917,8 @@ Compatibility rule:
 - Queue deduplication must be based on the full source file path.
 - If an input file's full source path is already queued or currently being processed, skip that source file and continue processing the rest of the input files.
 - When a duplicate source file is skipped, show a clear `Already queued` message that includes the source file name.
-- The queued count shown in the main status bar and Status window must be derived from the unfinished destination files represented by all queue entries, not from the number of source-file queue entries.
-- The processed count shown in the Status window must be derived from completed destination-file operations, not from the number of completed source-file queue entries.
+- The queued count shown in the main status bar and Queue window must be derived from the unfinished destination files represented by all queue entries, not from the number of source-file queue entries.
+- The processed count shown in the Queue window must be derived from completed destination-file operations, not from the number of completed source-file queue entries.
 - When queue entries are created, record the currently active `.log` file path on each queue entry.
 - When queue entries are created, record the active debug transfer mode on each queue entry.
 - Queue processing must write results to the `.log` file captured on the queue entry, not to a later log file that may become active after startup changes.
@@ -952,9 +947,9 @@ Compatibility rule:
 - Partial results should be logged clearly so failures at individual destinations can be diagnosed.
 - The worker thread should report completion or failure for each moved file and each destination.
 - For shutdown behavior, the unit of active work should be the current source file across all of its required destinations.
-- The worker thread must support a manual pause and resume action from the Status window.
+- The worker thread must support a manual pause and resume action from the Queue window.
 - During a manual pause, no new destination copy or source-file removal step should begin until the user selects `Resume`.
-- While manually paused, the Queue Status `Worker State` should show `Manual Pause`.
+- While manually paused, the Queue window `Worker State` should show `Manual Pause`.
 - If the user chooses to cancel a move in progress during shutdown, the worker thread must stop as soon as it can do so safely.
 - If cancellation happens after a destination file has been created but before that destination file is complete, the worker thread must remove the incomplete destination file during cleanup.
 - If a canceled transfer had already completed for one destination but not others, the incomplete destination files should be cleaned up and the cancellation should be logged clearly.
@@ -965,7 +960,7 @@ Compatibility rule:
 - If the user chooses `Retry`, the worker thread should retry the file normally.
 - If the user chooses `Cancel` during an error pause, clear the remaining queue and log the queued files that were not processed.
 - If the queue is cleared because of cancellation, remove the `.filemove-queued` sidecar markers for those source files.
-- During an error pause, the Queue Status `Worker State` should show a paused-for-error state such as `Paused - Error`.
+- During an error pause, the Queue window `Worker State` should show a paused-for-error state such as `Paused - Error`.
 
 ### Group creation and editing
 
@@ -1010,10 +1005,10 @@ Compatibility rule:
 - If `P` is not provided, use the saved placement mode from JSON.
 - Restore the saved window height and width on startup.
 - Keep the restored window fully within the bounds of the current screen.
-- If the active JSON file is changed from the Status window, immediately reload groups and settings from that file.
-- If the active JSON file is changed from the Status window, immediately switch the active `.log` file to the matching base-name `.log` file in the default data directory.
-- If the active JSON file is changed from the Status window successfully, close the Status window automatically.
-- If the selected JSON file from the Status window cannot be loaded because it is malformed or otherwise invalid, show an error message and keep the current JSON file and current `.log` file active.
+- If the active JSON file is changed from the Active JSON window, immediately reload groups and settings from that file.
+- If the active JSON file is changed from the Active JSON window, immediately switch the active `.log` file to the matching base-name `.log` file in the default data directory.
+- If the active JSON file is changed from the Active JSON window successfully, close the Active JSON window automatically.
+- If the selected JSON file from the Active JSON window cannot be loaded because it is malformed or otherwise invalid, show an error message and keep the current JSON file and current `.log` file active.
 - If command-line parsing fails, or if startup file resolution fails, open the debug console, show the error and valid options when applicable, wait for `Enter`, and then exit.
 - If startup JSON loading fails because the resolved JSON file is malformed or cannot be loaded, open the debug console, show the error and valid options, wait for `Enter`, and then exit.
 
@@ -1137,11 +1132,11 @@ All image assets must be embedded directly into the executable at build time. Th
 - Show a centered 128 x 128 image at the top of the About window
 - Show a Build Information section in the About window with Version and Built On date/time
 - Show the current run's command-line arguments in the Build Information section of the About window
-- Open a Status window from the header right-click menu
+- Open an Active JSON window from the header right-click menu
 - Open a non-modal Queue window from the header right-click menu
-- Show the active JSON file name and active `.log` file name at the top of the Status window
-- Show JSON files from the default data directory in the Status window and allow switching without restarting
-- Add a `Pause / Resume` control in the Status window Queue Status section
+- Show the active JSON file name and active `.log` file name at the top of the Active JSON window
+- Show JSON files from the default data directory in the Active JSON window and allow switching without restarting
+- Add a `Pause / Resume` control in the Queue window
 - Show the currently queued destination file paths in the Queue window and update the list as queue contents change
 - Make every actual group row a drop target for files from Windows Explorer
 - Open a context menu with `Use Clipboard`, `Edit`, and `Delete` by right-clicking a group row
@@ -1179,7 +1174,7 @@ All image assets must be embedded directly into the executable at build time. Th
 - Provide sort options for Most Recently Used, Least Recently Used, Added First, Added Last, A thru Z, and Z thru A
 - Provide placement options for Upper Left, Upper Right, Lower Left, Lower Right, and Last Location
 - Place search in a secondary window or dialog opened from the right-click menu
-- Move Queue Status from Settings into the Status window
+- Move Queue Status from Settings into the Queue window
 - Place sort settings in the settings window
 - Place placement settings in the settings window
 - Show only group names in the list for compact display

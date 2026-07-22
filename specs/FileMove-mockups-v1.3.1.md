@@ -179,23 +179,16 @@ FileMove/
 - This window is not resizable. It maintains the size it is created with.
 
 
-## Status Window
+## Active JSON Window
 
 ```text
 +-----------------------------------------------------------+
-| Status                                              [X]   |
+| Active JSON                                         [X]   |
 |-----------------------------------------------------------|
 | Active Files                                              |
 |   JSON: C:\Users\Brad\AppData\Roaming\FileMove\FileMove...|
 |   LOG:  C:\Users\Brad\AppData\Roaming\FileMove\FileMove...|
 |                                                    [Open] |
-|                                                           |
-| Queue Status                                              |
-|   Queued / Processed: 12 / 48    Worker State: Moving     |
-|   Current File:  C:\Users\Brad\Downloads\Report.pdf       |
-|   Current Destination: Z:\Accounting\Invoices             |
-|   Last Queue Error: None                                  |
-|                                                   [Pause] |
 |                                                           |
 | JSON Files In Default Data Directory                      |
 |   FileMove.json                                           |
@@ -210,24 +203,19 @@ FileMove/
 ```
 
 ### Notes
- 
-- `Status` is opened from the gear icon button context menu.
+
+- `Active JSON` is opened from the gear icon button context menu.
 - The Active Files section shows the full JSON path and the full `.log` path.
 - The `LOG` line includes a right-justified `Open` button.
 - `Open` launches the active `.log` file in the default editor.
-- The queue-status section is the second section in this window.
-- The queue-status section includes a right-justified `Pause` or `Resume` button below `Last Queue Error`.
-- `Queued / Processed` shows the current unfinished destination-file count followed by the count of destination files completed by the worker thread.
-- `Worker State` should show `Manual Pause` when the user pauses transfers.
-- `Worker State` should show an error-pause state when the worker pauses because of a transfer error.
 - The JSON file list shows files found in the default data directory.
 - The window height should allow at least 5 visible JSON file rows in this list.
 - The bottom row includes `New` and `Open Selected`.
 - `New` creates or opens a JSON file by base name only in the default data directory.
 - Selecting a JSON file and choosing `Open Selected` immediately opens that JSON file.
-- After `Open Selected` succeeds, the Status window closes automatically.
+- After `Open Selected` succeeds, the Active JSON window closes automatically.
 - Opening a JSON file from this list also switches the active `.log` file to the matching base-name `.log` file in the default data directory.
-- If `New` succeeds, the Status window also closes automatically.
+- If `New` succeeds, the Active JSON window also closes automatically.
 - When possible, the main window title bar should display the active JSON base name in parentheses after the app name.
 - Example: `FileMove (FileMove)`
  
@@ -250,7 +238,7 @@ FileMove/
 
 ### Notes
 
-- This window is opened from the `New` button in the Status window.
+- This window is opened from the `New` button in the Active JSON window.
 - Only a base name is allowed.
 - Paths are not allowed.
 - Extensions are not allowed.
@@ -357,7 +345,7 @@ FileMove/
   
 - Left click on the gear icon button opens this menu.
 - `Queue Window` opens the Queue window.
-- `Status` opens the Status window.
+- `Active JSON` opens the Active JSON window.
 - `Settings` opens the Settings window.
 - `Search` opens the Search dialog.
 - `About` opens the About window.
@@ -386,7 +374,12 @@ FileMove/
 +-----------------------------------------------------------+
 | Queue                                               [X]   |
 |-----------------------------------------------------------|
-| Queued Destinations (12)                    [Pause]       |
+| Queue Status                                              |
+|   Queued / Processed: 12 / 48    Worker State: Moving     |
+|   Current File:  C:\Users\Brad\Downloads\Report.pdf       |
+|   Current Destination: Z:\Accounting\Invoices             |
+|   Last Queue Error: None                                  |
+|                                                   [Pause] |
 |                                                           |
 | Z:\Accounting\Invoices\Report.pdf                         |
 | Z:\Accounting\Archive\Report.pdf                          |
@@ -405,9 +398,10 @@ FileMove/
 - `Queue Window` is opened from the gear icon button context menu.
 - The menu label shows the current queued destination count in parentheses.
 - The window is non-modal and can remain open while the main window continues accepting drops and moves.
-- The list updates automatically when destinations are added to the queue or completed by the worker thread.
-- The heading includes a `Pause / Resume` button on the right side that toggles the worker thread pause state.
+- The Queue Status section at the top shows: Queued/Processed count, Worker State, Current File, Current Destination, Last Queue Error.
+- The `Pause / Resume` button is positioned just above the listbox and toggles the worker thread pause state.
 - The `Pause` button changes to `Resume` when the worker is paused.
+- The list updates automatically when destinations are added to the queue or completed by the worker thread.
 - The `Delete` button removes one or more selected entries from the queue. Multi-select is supported.
 - The `Empty` button removes all entries from the queue after showing a confirmation dialog.
 - The `Delete` and `Empty` buttons are only enabled when the worker thread is in a manual pause state (`Manual Pause`).

@@ -452,7 +452,7 @@ Background thread that processes queued file moves with pause/resume, error hand
 **Worker states:**
 - `Idle` — No work in progress
 - `Moving` — Actively transferring files
-- `ManualPause` — Paused by user from Status window
+- `ManualPause` — Paused by user from Queue window
 - `PausedError` — Paused due to transfer error, awaiting retry/cancel
 
 **Shutdown actions:**
@@ -652,19 +652,17 @@ Modal About window showing build information.
 
 ### `src/window/dialogs/status.h/cpp`
 
-Modal Status window showing active files, queue status, and JSON file list.
+Modal Active JSON window showing active files and JSON file list.
 
 **Layout:**
 - **Active Files section:** JSON path, LOG path with right-justified "Open" button
-- **Queue Status section:** Queued/Processed count, Worker State, Current File, Current Destination, Last Queue Error, Pause/Resume button
 - **JSON Files section:** Listbox of `.json` files in default data directory
 - **Bottom buttons:** "New" and "Open Selected"
 
 **Behavior:**
 - "Open" button launches log file in default editor via `ShellExecuteW`
-- Pause/Resume toggles worker thread state
-- "New" opens New File dialog, creates/opens JSON file, auto-closes Status on success
-- "Open Selected" loads the selected JSON file, switches active log file, auto-closes Status on success
+- "New" opens New File dialog, creates/opens JSON file, auto-closes Active JSON on success
+- "Open Selected" loads the selected JSON file, switches active log file, auto-closes Active JSON on success
 - JSON file list auto-selects the currently active file
 - `RequestClose()` allows external code to close the dialog (used for auto-close)
 
@@ -725,11 +723,12 @@ Modal dialog for adding or modifying a group.
 
 ### `src/window/dialogs/queue_window.h/cpp`
 
-Modeless Queue window showing currently queued destination file paths.
+Modeless Queue window showing queue status and currently queued destination file paths.
 
 **Layout:**
 - Title bar shows "Queue (N)" with current count
-- Heading: "Queued Destinations (N)" with Pause/Resume button
+- **Queue Status section:** Queued/Processed count, Worker State, Current File, Current Destination, Last Queue Error
+- **Pause/Resume button** positioned just above the listbox
 - Listbox of destination file paths
 - **Delete** button — removes selected entries (enabled only during Manual Pause)
 - **Empty** button — removes all entries with confirmation (enabled only during Manual Pause)
@@ -740,6 +739,7 @@ Modeless Queue window showing currently queued destination file paths.
 - `UpdateList(destinations)` refreshes the list and title
 - Global instance `gQueueWindow` allows access from anywhere
 - Created once, subsequent menu clicks bring it to foreground
+- 500ms timer refreshes both queue list and queue status data
 - Pause/Resume toggles worker thread state; button text switches between "Pause" and "Resume"
 - Delete/Empty buttons are disabled when worker is active or idle; enabled only during Manual Pause
 

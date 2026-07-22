@@ -97,26 +97,25 @@ Used for creating and editing groups. Contains:
 - **Add Destination** / **Delete Destination** buttons
 - **OK** / **Cancel** buttons
 
-### Status Window
+### Active JSON Window
 
-Accessed via gear button > `Status`. Shows:
+Accessed via gear button > `Active JSON`. Shows:
 - **Active Files**: Current JSON and `.log` file paths
 - **Open** button on the LOG line to launch the log file in the default editor
 - **JSON file list**: All `.json` files in the data directory
 - **Open Selected**: Switch to the selected JSON file
 - **New**: Create a new JSON file (base name only)
-- **Queue Status**: `Queued / Processed:` counts, Worker State, Pause/Resume button
 - **Close** button
 
-The Status window closes automatically after successfully opening or creating a JSON file.
+The Active JSON window closes automatically after successfully opening or creating a JSON file.
 
 ### Queue Window
 
 Accessed via gear button > `Queue Window`. Non-modal window showing:
+- **Queue Status** section at top: `Queued / Processed:` counts, Worker State, Current File, Current Destination, Last Queue Error
+- **Pause / Resume** button just above the listbox to toggle the worker thread pause state
 - All destination file paths currently queued or in progress
 - Live-updating list as files are added and processed
-- Current queued count in the heading
-- **Pause / Resume** button in the heading to toggle the worker thread pause state
 - **Delete** button — removes selected entries from the queue (enabled only during Manual Pause, requires at least one selection)
 - **Empty** button — removes all entries from the queue with a confirmation dialog (enabled only during Manual Pause)
 - **Close** button
@@ -267,7 +266,7 @@ Log files are automatically trimmed when they exceed 60 KB (reduced to 50 KB by 
 
 ### Queue Stuck
 
-- Open Status window and click **Pause / Resume** to reset the worker
+- Open Queue window and click **Pause / Resume** to reset the worker
 - Check for file conflicts or permission issues in the log file
 
 ### Debug Mode

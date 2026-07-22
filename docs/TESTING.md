@@ -176,7 +176,7 @@ These scenarios require manual execution of the built application.
 1. Queue multiple batches to the same group
 2. Open Queue window from gear button > `Queue Window`
 3. Verify queue updates as files process
-4. Pause processing via Status window
+4. Pause processing via Queue window
 5. Resume processing
 6. Verify all files complete
 
@@ -203,11 +203,11 @@ These scenarios require manual execution of the built application.
 
 ### Scenario 6: JSON File Switching
 
-1. Open Status window
+1. Open Active JSON window
 2. Verify JSON file list is populated
 3. Select a different JSON file
 4. Verify groups reload from selected file
-5. Verify Status window closes automatically
+5. Verify Active JSON window closes automatically
 6. Verify active `.log` file switches to matching base name
 
 ### Scenario 7: Settings Persistence
