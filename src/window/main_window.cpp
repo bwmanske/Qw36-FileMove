@@ -1387,8 +1387,6 @@ void MainWindow::OnUseClipboard() {
         }
     }
 
-    DragFinish(hDrop);
-
     if (files.empty()) {
         MessageBoxW(mHWND, L"No valid files found in clipboard.",
             L"Clipboard Error", MB_ICONERROR);
@@ -1425,6 +1423,12 @@ void MainWindow::OnUseClipboard() {
     // Release to worker
     gQueueManager.ReleasePreparedEntries();
     gWorkerThread.Notify();
+
+    // Clear clipboard after successful use
+    if (OpenClipboard(mHWND)) {
+        EmptyClipboard();
+        CloseClipboard();
+    }
 
     // Update group lastUsedAt
     for (auto& g : gAppData.groups) {
