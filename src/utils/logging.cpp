@@ -157,15 +157,6 @@ void TrimLogFileIfNeeded() {
 }
 
 static std::string EscapeCsvFieldUtf8(const std::string& field) {
-    bool needsQuote = false;
-    for (char c : field) {
-        if (c == ',' || c == '"' || c == '\n' || c == '\r') {
-            needsQuote = true;
-            break;
-        }
-    }
-    if (!needsQuote) return field;
-
     std::string escaped = "\"";
     for (char c : field) {
         if (c == '"') escaped += "\"\"";
@@ -194,14 +185,20 @@ void LogTransfer(const std::wstring& fileName,
                   const std::wstring& result) {
     if (!gLogFileOpen) return;
 
+    // Ensure directories end with backslash
+    std::wstring srcDir = sourceDir;
+    if (!srcDir.empty() && srcDir.back() != L'\\') srcDir += L'\\';
+    std::wstring dstDir = destDir;
+    if (!dstDir.empty() && dstDir.back() != L'\\') dstDir += L'\\';
+
     std::string utf8Path = WStringToUtf8(gLogPath);
     std::ofstream outFile(utf8Path, std::ios::app | std::ios::binary);
     if (!outFile.is_open()) return;
-    outFile << EscapeCsvFieldUtf8(WStringToUtf8(fileName)) << ","
-            << EscapeCsvFieldUtf8(WStringToUtf8(sourceDir)) << ","
-            << EscapeCsvFieldUtf8(WStringToUtf8(destDir)) << ","
-            << EscapeCsvFieldUtf8(WStringToUtf8(dateTime)) << ","
-            << EscapeCsvFieldUtf8(WStringToUtf8(result)) << "\n";
+    outFile << EscapeCsvFieldUtf8(WStringToUtf8(result)) << ","
+            << EscapeCsvFieldUtf8(WStringToUtf8(fileName)) << ","
+            << EscapeCsvFieldUtf8(WStringToUtf8(srcDir)) << ","
+            << EscapeCsvFieldUtf8(WStringToUtf8(dstDir)) << ","
+            << EscapeCsvFieldUtf8(WStringToUtf8(dateTime)) << "\n";
     outFile.close();
 }
 
