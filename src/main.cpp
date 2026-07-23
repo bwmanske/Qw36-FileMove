@@ -272,7 +272,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     LogInfo(L"JSON file closed: " + GetTimestamp() + L" (" + gJsonPath + L")");
-    LogInfo(L"LOG file closed: " + GetTimestamp() + L" (" + gLogPath + L")");
     CloseLogFile();
     GdiplusShutdown(gdiplusToken);
     CoUninitialize();

@@ -102,6 +102,18 @@ bool OpenLogFile(const std::wstring& logPath) {
     gLogPath = logPath;
     gLogFileOpen = true;
     TrimLogFileIfNeeded();
+
+    // Add a blank line before new log entries if file exists and isn't empty
+    struct _stat64 st;
+    if (_wstat64(gLogPath.c_str(), &st) == 0 && st.st_size > 0) {
+        std::string utf8Path = WStringToUtf8(gLogPath);
+        std::ofstream outFile(utf8Path, std::ios::app | std::ios::binary);
+        if (outFile.is_open()) {
+            outFile << "\n";
+            outFile.close();
+        }
+    }
+
     return true;
 }
 

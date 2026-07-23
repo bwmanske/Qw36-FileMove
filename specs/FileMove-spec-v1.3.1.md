@@ -686,6 +686,16 @@ Example transfer record:
 "Success","Report.pdf","C:\Users\Brad\Downloads\","Z:\Accounting\Invoices\","2026-04-25 10:42:18"
 ```
 
+Example rejected transfer record (logged when a file is rejected during queue preparation):
+
+```text
+"Rejected - Already queued","Report.pdf","C:\Users\Brad\Downloads","","2026-04-25 10:42:18"
+"Rejected - Source already in all destinations","Photo.jpg","C:\Users\Brad\Pictures","","2026-04-25 10:42:19"
+"Rejected - No remaining destinations","Video.mp4","C:\Users\Brad\Videos","","2026-04-25 10:42:20"
+```
+
+Rejection reasons include: "Already queued", "Source already in all destinations", "No remaining destinations", and validation errors (e.g., "Source file does not exist"). The destination directory field is empty for rejected entries.
+
 Example non-transfer records:
 
 ```text

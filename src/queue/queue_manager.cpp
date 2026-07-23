@@ -327,6 +327,16 @@ bool QueueManager::PrepareBatch(const std::string& groupId,
     for (const auto& sf : expandedSources) {
         if (IsAlreadyQueued(sf.filePath)) {
             skippedDuplicates.push_back(sf.filePath);
+            // Log as Rejected CSV entry
+            std::string srcDir = sf.filePath;
+            size_t sl = srcDir.find_last_of("/\\");
+            if (sl != std::string::npos) srcDir = srcDir.substr(0, sl);
+            else srcDir.clear();
+            std::string srcFile = sf.filePath;
+            size_t sf2 = srcFile.find_last_of("/\\");
+            if (sf2 != std::string::npos) srcFile = srcFile.substr(sf2 + 1);
+            else srcFile = sf.filePath;
+            LogTransfer(StringToWString(srcFile), StringToWString(srcDir), L"", GetTimestamp(), L"Rejected - Already queued");
             continue;
         }
 
@@ -334,6 +344,16 @@ bool QueueManager::PrepareBatch(const std::string& groupId,
         if (ValidateSourceFile(sf.filePath, validationError)) {
             validSources.push_back(sf);
         } else {
+            // Log as Rejected CSV entry
+            std::string srcDir = sf.filePath;
+            size_t sl = srcDir.find_last_of("/\\");
+            if (sl != std::string::npos) srcDir = srcDir.substr(0, sl);
+            else srcDir.clear();
+            std::string srcFile = sf.filePath;
+            size_t sf2 = srcFile.find_last_of("/\\");
+            if (sf2 != std::string::npos) srcFile = srcFile.substr(sf2 + 1);
+            else srcFile = sf.filePath;
+            LogTransfer(StringToWString(srcFile), StringToWString(srcDir), L"", GetTimestamp(), L"Rejected - " + validationError);
             errorMessage = validationError;
             mMutex.unlock();
             return false;
@@ -437,6 +457,16 @@ bool QueueManager::PrepareBatch(const std::string& groupId,
                               StringToWString(info.sourcePath);
             LogInfo(msg);
             DebugConsoleWriteLine(msg);
+            // Log as Rejected CSV entry
+            std::string srcDir = info.sourcePath;
+            size_t sl = srcDir.find_last_of("/\\");
+            if (sl != std::string::npos) srcDir = srcDir.substr(0, sl);
+            else srcDir.clear();
+            std::string srcFile = info.sourcePath;
+            size_t sf2 = srcFile.find_last_of("/\\");
+            if (sf2 != std::string::npos) srcFile = srcFile.substr(sf2 + 1);
+            else srcFile = info.sourcePath;
+            LogTransfer(StringToWString(srcFile), StringToWString(srcDir), L"", GetTimestamp(), L"Rejected - Source already in all destinations");
             // Mark as duplicate to skip
             skippedDuplicates.push_back(info.sourcePath);
         } else {
@@ -501,6 +531,16 @@ bool QueueManager::PrepareBatch(const std::string& groupId,
             std::wstring msg = L"No remaining destinations for source, skipping: " +
                               StringToWString(sf.filePath);
             LogInfo(msg);
+            // Log as Rejected CSV entry
+            std::string srcDir = sf.filePath;
+            size_t sl = srcDir.find_last_of("/\\");
+            if (sl != std::string::npos) srcDir = srcDir.substr(0, sl);
+            else srcDir.clear();
+            std::string srcFile = sf.filePath;
+            size_t sf2 = srcFile.find_last_of("/\\");
+            if (sf2 != std::string::npos) srcFile = srcFile.substr(sf2 + 1);
+            else srcFile = sf.filePath;
+            LogTransfer(StringToWString(srcFile), StringToWString(srcDir), L"", GetTimestamp(), L"Rejected - No remaining destinations");
             continue;
         }
 
