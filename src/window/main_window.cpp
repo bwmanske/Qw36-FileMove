@@ -721,6 +721,7 @@ void MainWindow::OnCommand(int id) {
                 gAppData = newData;
                 gJsonPath = jsonPath;
                 gLogPath = GetDefaultDataDirectory() + L"\\" + GetBaseName(jsonPath) + L".log";
+                OpenLogFile(gLogPath);
 
                 LogInfo(L"JSON file opened: " + GetTimestamp() + L" (" + jsonPath + L")");
                 LogInfo(L"LOG file opened: " + GetTimestamp() + L" (" + gLogPath + L")");
