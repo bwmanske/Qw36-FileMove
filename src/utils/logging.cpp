@@ -106,6 +106,15 @@ bool OpenLogFile(const std::wstring& logPath) {
 }
 
 void CloseLogFile() {
+    if (!gLogFileOpen) return;
+
+    std::string utf8Path = WStringToUtf8(gLogPath);
+    std::ofstream outFile(utf8Path, std::ios::app | std::ios::binary);
+    if (outFile.is_open()) {
+        outFile << "----> LOG file closed: " << WStringToUtf8(GetTimestamp()) << "\n";
+        outFile.close();
+    }
+
     gLogFileOpen = false;
     gLogPath.clear();
 }
