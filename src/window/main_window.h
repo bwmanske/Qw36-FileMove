@@ -164,6 +164,9 @@ private:
     POINT mLastClickPt;
     bool mLeftButtonDown;
     void* mGearImage;
+
+    // Right-clicked group ID for context menu actions
+    std::string mRightClickedGroupId;
 };
 
 // Global main window instance

@@ -71,6 +71,7 @@ MainWindow::MainWindow()
     , mDragHighlightRow(-1)
     , mLeftButtonDown(false)
     , mGearImage(NULL)
+    , mRightClickedGroupId()
 {
     mLastClickPt.x = 0;
     mLastClickPt.y = 0;
@@ -650,6 +651,8 @@ void MainWindow::OnHeaderRightClick(POINT pt) {
 }
 
 void MainWindow::OnGroupRightClick(const std::string& groupId, POINT pt) {
+    mRightClickedGroupId = groupId;
+
     HMENU hMenu = CreatePopupMenu();
 
     AppendMenuW(hMenu, MF_STRING, IDM_USE_CLIPBOARD, L"Use Clipboard");
@@ -784,7 +787,7 @@ void MainWindow::OnCommand(int id) {
             break;
         }
         case IDM_EDIT: {
-            std::string selectedId = mGroupList.GetSelectedGroupId();
+            std::string selectedId = mRightClickedGroupId;
             const Group* targetGroup = nullptr;
             for (const auto& group : gAppData.groups) {
                 if (group.id == selectedId) {
@@ -817,7 +820,7 @@ void MainWindow::OnCommand(int id) {
             break;
         }
         case IDM_DELETE: {
-            std::string selectedId = mGroupList.GetSelectedGroupId();
+            std::string selectedId = mRightClickedGroupId;
             std::string selectedName;
 
             for (const auto& group : gAppData.groups) {
@@ -1393,8 +1396,8 @@ void MainWindow::OnUseClipboard() {
         return;
     }
 
-    // Get selected group
-    std::string groupId = mGroupList.GetSelectedGroupId();
+    // Get right-clicked group
+    std::string groupId = mRightClickedGroupId;
     if (groupId.empty()) {
         MessageBoxW(mHWND, L"No group selected. Select a group first.",
             L"Clipboard Error", MB_ICONERROR);
