@@ -683,7 +683,7 @@ Required `---->` records should include:
 Example transfer record:
 
 ```text
-"Report.pdf","C:\Users\Brad\Downloads","Z:\Accounting\Invoices","2026-04-25 10:42:18","Success"
+"Report.pdf","C:\Users\Brad\Downloads\","Z:\Accounting\Invoices\","2026-04-25 10:42:18","Success"
 ```
 
 Example non-transfer records:

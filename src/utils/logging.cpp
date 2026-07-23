@@ -13,6 +13,16 @@ static HANDLE gConsoleHandle = INVALID_HANDLE_VALUE;
 static std::wstring gLogPath;
 static bool gLogFileOpen = false;
 
+static std::string WStringToUtf8(const std::wstring& s) {
+    if (s.empty()) return "";
+    int len = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), static_cast<int>(s.size()), NULL, 0, NULL, NULL);
+    if (len <= 0) return "";
+    std::string result;
+    result.resize(len);
+    WideCharToMultiByte(CP_UTF8, 0, s.c_str(), static_cast<int>(s.size()), &result[0], len, NULL, NULL);
+    return result;
+}
+
 bool OpenDebugConsole() {
     if (gConsoleHandle != INVALID_HANDLE_VALUE) return true;
 
@@ -107,12 +117,12 @@ void TrimLogFileIfNeeded() {
     if (_wstat64(gLogPath.c_str(), &st) != 0) return;
     if (st.st_size <= 60000) return;
 
-    // Read all lines
-    std::wifstream inFile(gLogPath);
+    // Read all lines as UTF-8
+    std::ifstream inFile(WStringToUtf8(gLogPath), std::ios::binary);
     if (!inFile.is_open()) return;
 
-    std::vector<std::wstring> lines;
-    std::wstring line;
+    std::vector<std::string> lines;
+    std::string line;
     while (std::getline(inFile, line)) {
         lines.push_back(line);
     }
@@ -122,68 +132,67 @@ void TrimLogFileIfNeeded() {
     while (lines.size() > 1) {
         size_t totalSize = 0;
         for (size_t i = 1; i < lines.size(); i++) {
-            totalSize += (lines[i].size() + 1) * sizeof(wchar_t);
+            totalSize += lines[i].size() + 1;
         }
         if (totalSize < 50000) break;
         lines.erase(lines.begin());
     }
 
-    // Write back
-    std::wofstream outFile(gLogPath, std::ios::trunc);
+    // Write back as UTF-8
+    std::ofstream outFile(WStringToUtf8(gLogPath), std::ios::trunc | std::ios::binary);
     if (!outFile.is_open()) return;
-    outFile.imbue(std::locale::classic());
     for (const auto& l : lines) {
-        outFile << l << L"\n";
+        outFile << l << "\n";
     }
     outFile.close();
 }
 
-static std::wstring EscapeCsvField(const std::wstring& field) {
+static std::string EscapeCsvFieldUtf8(const std::string& field) {
     bool needsQuote = false;
-    for (wchar_t c : field) {
-        if (c == L',' || c == L'"' || c == L'\n' || c == L'\r') {
+    for (char c : field) {
+        if (c == ',' || c == '"' || c == '\n' || c == '\r') {
             needsQuote = true;
             break;
         }
     }
     if (!needsQuote) return field;
 
-    std::wstring escaped = L"\"";
-    for (wchar_t c : field) {
-        if (c == L'"') escaped += L"\"\"";
+    std::string escaped = "\"";
+    for (char c : field) {
+        if (c == '"') escaped += "\"\"";
         else escaped += c;
     }
-    escaped += L"\"";
+    escaped += "\"";
     return escaped;
 }
 
 void LogInfo(const std::wstring& message) {
     if (!gLogFileOpen) return;
 
-    std::wofstream outFile(gLogPath, std::ios::app);
+    std::string utf8Path = WStringToUtf8(gLogPath);
+    std::ofstream outFile(utf8Path, std::ios::app | std::ios::binary);
     if (!outFile.is_open()) return;
-    outFile.imbue(std::locale::classic());
-    outFile << L"----> " << message << L"\n";
+    outFile << "----> " << WStringToUtf8(message) << "\n";
     outFile.close();
 
     DebugConsoleWriteLine(L"----> " + message);
 }
 
 void LogTransfer(const std::wstring& fileName,
-                 const std::wstring& sourceDir,
-                 const std::wstring& destDir,
-                 const std::wstring& dateTime,
-                 const std::wstring& result) {
+                  const std::wstring& sourceDir,
+                  const std::wstring& destDir,
+                  const std::wstring& dateTime,
+                  const std::wstring& result) {
     if (!gLogFileOpen) return;
 
-    std::wofstream outFile(gLogPath, std::ios::app);
+    std::string utf8Path = WStringToUtf8(gLogPath);
+    std::ofstream outFile(utf8Path, std::ios::app | std::ios::binary);
     if (!outFile.is_open()) return;
-    outFile.imbue(std::locale::classic());
-    outFile << EscapeCsvField(fileName) << L","
-            << EscapeCsvField(sourceDir) << L","
-            << EscapeCsvField(destDir) << L","
-            << EscapeCsvField(dateTime) << L","
-            << EscapeCsvField(result) << L"\n";
+    outFile << EscapeCsvFieldUtf8(WStringToUtf8(fileName)) << ","
+            << EscapeCsvFieldUtf8(WStringToUtf8(sourceDir)) << ","
+            << EscapeCsvFieldUtf8(WStringToUtf8(destDir)) << ","
+            << EscapeCsvFieldUtf8(WStringToUtf8(dateTime)) << ","
+            << EscapeCsvFieldUtf8(WStringToUtf8(result)) << "\n";
     outFile.close();
 }
 
