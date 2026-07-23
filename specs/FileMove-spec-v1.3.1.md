@@ -700,7 +700,11 @@ Example non-transfer records:
 ----> Window size: 320 x 500
 ----> Window position: Left 0, Top 0
 ----> New JSON file created: C:\Data\Groups.json
+----> JSON file switched: 2026-04-25 10:45:12 (C:\Data\OtherGroups.json)
+----> LOG file closed: 2026-04-25 10:50:00
 ```
+
+When switching JSON files via the Active JSON window, a "JSON file switched" record is logged followed by the same settings summary (Sort mode, Placement mode, Window size, Window position) as at startup. A "LOG file closed" record is written just before the log file is closed on shutdown.
 
 ### Debug mode behavior
 
