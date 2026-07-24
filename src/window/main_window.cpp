@@ -723,8 +723,8 @@ void MainWindow::OnCommand(int id) {
                 gLogPath = GetDefaultDataDirectory() + L"\\" + GetBaseName(jsonPath) + L".log";
                 OpenLogFile(gLogPath);
 
-                LogInfo(L"JSON file switched: " + GetTimestamp() + L" (" + jsonPath + L")");
                 LogInfo(L"LOG file opened: " + GetTimestamp() + L" (" + gLogPath + L")");
+                LogInfo(L"JSON file switched: " + GetTimestamp() + L" (" + jsonPath + L")");
                 LogInfo(L"Sort mode: " + std::wstring(gAppData.settings.sortMode.begin(), gAppData.settings.sortMode.end()));
                 LogInfo(L"Placement mode: " + std::wstring(gAppData.settings.placementMode.begin(), gAppData.settings.placementMode.end()));
                 LogInfo(L"Window size: " + std::to_wstring(gAppData.settings.windowWidth) + L" x " + std::to_wstring(gAppData.settings.windowHeight));
