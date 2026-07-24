@@ -2,6 +2,7 @@
 #include "file_io.h"
 #include "utils/logging.h"
 #include <windows.h>
+#include <objbase.h>
 #include <fstream>
 #include <sstream>
 #include <ctime>
@@ -11,14 +12,14 @@
 #include <algorithm>
 
 std::string GenerateGroupId() {
-    auto now = std::chrono::system_clock::now();
-    auto count = std::chrono::duration_cast<std::chrono::milliseconds>(
-        now.time_since_epoch()).count();
-
-    std::mt19937 gen(static_cast<unsigned>(count));
-    std::uniform_int_distribution<> dis(0, 0xFFFFFF);
-    char buf[16];
-    std::snprintf(buf, sizeof(buf), "grp-%06x", dis(gen));
+    GUID guid;
+    CoCreateGuid(&guid);
+    char buf[33];
+    std::snprintf(buf, sizeof(buf),
+        "%08x%04x%04x%02x%02x%02x%02x%02x%02x%02x%02x",
+        guid.Data1, guid.Data2, guid.Data3,
+        guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3],
+        guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]);
     return std::string(buf);
 }
 

@@ -752,15 +752,17 @@ static void TestJsonParser() {
         RemoveFile(path);
     }
 
-    // Test: GenerateGroupId produces unique IDs
+    // Test: GenerateGroupId produces unique GUIDs
     {
         std::string id1 = GenerateGroupId();
         std::string id2 = GenerateGroupId();
         ASSERT_FALSE(id1.empty());
         ASSERT_FALSE(id2.empty());
-        // IDs start with "grp-"
-        ASSERT_TRUE(id1.substr(0, 4) == "grp-");
-        ASSERT_TRUE(id2.substr(0, 4) == "grp-");
+        // IDs are 32-char hex GUIDs
+        ASSERT_TRUE(id1.size() == 32);
+        ASSERT_TRUE(id2.size() == 32);
+        for (char c : id1) ASSERT_TRUE((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'));
+        for (char c : id2) ASSERT_TRUE((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'));
     }
 
     // Test: GetIsoTimestamp produces valid ISO 8601 format
