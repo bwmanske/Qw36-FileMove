@@ -711,6 +711,17 @@ void MainWindow::OnCommand(int id) {
         }
         case IDM_STATUS: {
             auto onJsonFileOpen = [this](const std::wstring& jsonPath) -> bool {
+                // Close old log first so "LOG file closed" goes to the old file
+                CloseLogFile();
+
+                // Switch to new log path
+                gLogPath = GetDefaultDataDirectory() + L"\\" + GetBaseName(jsonPath) + L".log";
+                OpenLogFile(gLogPath);
+
+                LogInfo(L"LOG file opened: " + GetTimestamp() + L" (" + gLogPath + L")");
+                LogInfo(L"JSON file switched: " + GetTimestamp() + L" (" + jsonPath + L")");
+
+                // Now load the JSON — its internal LogInfo calls go to the new log
                 AppData newData;
                 if (!LoadAppData(jsonPath, newData)) {
                     MessageBoxW(mHWND, L"Failed to load JSON file (malformed).",
@@ -720,11 +731,7 @@ void MainWindow::OnCommand(int id) {
 
                 gAppData = newData;
                 gJsonPath = jsonPath;
-                gLogPath = GetDefaultDataDirectory() + L"\\" + GetBaseName(jsonPath) + L".log";
-                OpenLogFile(gLogPath);
 
-                LogInfo(L"LOG file opened: " + GetTimestamp() + L" (" + gLogPath + L")");
-                LogInfo(L"JSON file switched: " + GetTimestamp() + L" (" + jsonPath + L")");
                 LogInfo(L"Sort mode: " + std::wstring(gAppData.settings.sortMode.begin(), gAppData.settings.sortMode.end()));
                 LogInfo(L"Placement mode: " + std::wstring(gAppData.settings.placementMode.begin(), gAppData.settings.placementMode.end()));
                 LogInfo(L"Window size: " + std::to_wstring(gAppData.settings.windowWidth) + L" x " + std::to_wstring(gAppData.settings.windowHeight));
