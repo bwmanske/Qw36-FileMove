@@ -177,7 +177,7 @@ FileMove/
 │   └── nlohmann/
 │       └── json.hpp                  # nlohmann/json v3.11.3 (header-only)
 ├── tests/
-│   └── test_harness.cpp              # (Phase 7) Unit tests (320 tests)
+│   └── test_harness.cpp              # (Phase 7) Unit tests (384 tests)
 ├── assets/
 │   ├── icons/
 │   │   ├── FileMove-icon.ico         # Application icon (embedded at build)
@@ -290,15 +290,28 @@ Provides debug console output and log file writing.
 - `DebugConsoleWrite()` / `DebugConsoleWriteLine()` — Writes to console via `WriteConsoleW` (no-op if console not open)
 
 **Log file:**
-- `OpenLogFile(path)` — Sets active log path, triggers trim check
-- `CloseLogFile()` — Clears active log path
+- `OpenLogFile(path)` — Sets active log path, triggers trim check; adds a blank line before new entries when switching to an existing non-empty log file
+- `CloseLogFile()` — Writes `----> LOG file closed: <timestamp>` record, then clears active log path
 - `TrimLogFileIfNeeded()` — If file exceeds 60KB, removes oldest lines until under 50KB
 - `LogInfo(message)` — Writes `----> message` to log file and debug console
 - `LogTransfer(fileName, sourceDir, destDir, dateTime, result)` — Writes CSV-formatted transfer record
 - `GetTimestamp()` — Returns current time as `YYYY-MM-DD HH:MM:SS`
 
+**Log buffering (for JSON file switching):**
+- `EnableLogBuffer()` — Enables buffering; subsequent log entries are held in memory instead of written to disk
+- `FlushLogBuffer()` — Writes all buffered entries to the currently active log file
+- `DiscardLogBuffer()` — Discards all buffered entries without writing
+- `SetLogFilePath(path)` — Changes the active log file path (used during JSON file switching)
+
+**Log file switching flow:**
+1. Before switching JSON files, `EnableLogBuffer()` is called
+2. `LoadAppData` for the new file logs `LoadAppData: attempting to load <path>` (buffered)
+3. If load succeeds: `CloseLogFile()` writes `LOG file closed` to old file, `SetLogFilePath()` switches to new log, `OpenLogFile()` writes `LOG file opened` and `JSON file switched`, then `FlushLogBuffer()` writes buffered entries
+4. If load fails: old log stays open, failure is logged directly, `DiscardLogBuffer()` discards buffered entries
+
 **Log format:**
-- Transfer records: `"file","source","dest","timestamp","Success|Error"`
+- Transfer records (status first, all fields quoted, directories end with `\`): `"Success","file.mp4","C:\Source\","D:\Dest\","2026-07-23 12:00:00"`
+- Rejected entries (destination empty): `"Rejected - Already queued","file.mp4","C:\Source","","2026-07-23 12:00:00"`
 - Info records: `----> descriptive text`
 
 ### `src/data/file_io.h/cpp`
@@ -368,7 +381,7 @@ struct AppData {
 - `LoadAppData(path, data)` — Parses JSON file into `AppData`. Returns `true` on success. Empty files (0 bytes) return default `AppData`. Malformed JSON returns `false`.
 - `SaveAppData(path, data)` — Serializes `AppData` to pretty-printed JSON (4-space indent).
 - `CreateDefaultJson(path)` — Creates a new JSON file with default settings.
-- `GenerateGroupId()` — Generates unique `grp-XXXXXX` IDs.
+- `GenerateGroupId()` — Generates unique 32-character hex GUIDs via `CoCreateGuid()` (e.g., `70bfed4fe87b43c6a06910c85988ffff`) for C# compatibility.
 - `GetIsoTimestamp()` — Returns current UTC time in ISO 8601 format.
 
 **Legacy migration:** Groups with a single `DestinationPath` field are automatically migrated to a one-item `destinationPaths` array on load. Saved files always use `destinationPaths`.
@@ -1132,7 +1145,7 @@ All assets are embedded into the executable at build time via a Windows resource
 **Run:** `build/Release/test_harness.exe`
 **CMake:** `ctest --config Release`
 
-### Test Coverage (320 tests)
+### Test Coverage (384 tests)
 
 **cmdline_parser (45 tests):**
 - Empty command line, valid/invalid `/D` values (MV, CP, case insensitive)

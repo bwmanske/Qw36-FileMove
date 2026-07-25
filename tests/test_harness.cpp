@@ -11,6 +11,7 @@
 #include <thread>
 
 #include "utils/cmdline_parser.h"
+#include "utils/logging.h"
 #include "data/file_io.h"
 #include "data/json_parser.h"
 #include "queue/queue_manager.h"
@@ -805,6 +806,339 @@ static void TestJsonParser() {
     RemoveDirectoryTree(testDir);
 
     std::cout << "  json_parser tests done." << std::endl;
+}
+
+// ==================== logging buffer tests ====================
+
+static void TestLoggingBuffer() {
+    std::cout << "Testing logging_buffer..." << std::endl;
+
+    std::wstring testDir = L"C:\\FileMoveTest\\LoggingBuffer\\";
+    EnsureDirectoryExists(testDir);
+
+    // Test: EnableLogBuffer captures LogInfo messages
+    {
+        EnableLogBuffer();
+        LogInfo(L"buffered message 1");
+        LogInfo(L"buffered message 2");
+        LogInfo(L"buffered message 3");
+
+        // Messages should not appear in any log file (no file open)
+        // Just verify no crash occurred
+        DiscardLogBuffer();
+    }
+
+    // Test: FlushLogBuffer writes to file
+    {
+        std::wstring logPath = testDir + L"\\flush_test.log";
+        RemoveFile(logPath);
+
+        // Open log, write header
+        CloseLogFile();
+        SetLogFilePath(logPath);
+        LogInfo(L"header line");
+
+        // Enable buffer, add messages
+        EnableLogBuffer();
+        LogInfo(L"buffered A");
+        LogInfo(L"buffered B");
+
+        // Flush
+        FlushLogBuffer();
+
+        // Verify file contents
+        std::ifstream inFile(WStringToString(logPath));
+        std::string line;
+        std::vector<std::string> lines;
+        while (std::getline(inFile, line)) {
+            lines.push_back(line);
+        }
+        inFile.close();
+
+        ASSERT_EQ(lines.size(), 3ULL);
+        ASSERT_TRUE(lines[0].find("header line") != std::string::npos);
+        ASSERT_TRUE(lines[1].find("buffered A") != std::string::npos);
+        ASSERT_TRUE(lines[2].find("buffered B") != std::string::npos);
+
+        RemoveFile(logPath);
+    }
+
+    // Test: DiscardLogBuffer does not write to file
+    {
+        std::wstring logPath = testDir + L"\\discard_test.log";
+        RemoveFile(logPath);
+
+        // Open log, write header
+        CloseLogFile();
+        SetLogFilePath(logPath);
+        LogInfo(L"header only");
+
+        // Enable buffer, add messages
+        EnableLogBuffer();
+        LogInfo(L"should not appear");
+
+        // Discard
+        DiscardLogBuffer();
+
+        // Verify only header in file
+        std::ifstream inFile(WStringToString(logPath));
+        std::string line;
+        std::vector<std::string> lines;
+        while (std::getline(inFile, line)) {
+            lines.push_back(line);
+        }
+        inFile.close();
+
+        ASSERT_EQ(lines.size(), 1ULL);
+        ASSERT_TRUE(lines[0].find("header only") != std::string::npos);
+
+        RemoveFile(logPath);
+    }
+
+    // Test: LogTransfer buffering and flush
+    {
+        std::wstring logPath = testDir + L"\\transfer_test.log";
+        RemoveFile(logPath);
+
+        CloseLogFile();
+        SetLogFilePath(logPath);
+        LogInfo(L"transfer header");
+
+        EnableLogBuffer();
+        LogTransfer(L"test.mp4", L"C:\\Source", L"D:\\Dest", L"2026-01-01 00:00:00", L"Success");
+        FlushLogBuffer();
+
+        // Verify CSV line in file
+        std::ifstream inFile(WStringToString(logPath));
+        std::string line;
+        std::vector<std::string> lines;
+        while (std::getline(inFile, line)) {
+            lines.push_back(line);
+        }
+        inFile.close();
+
+        ASSERT_EQ(lines.size(), 2ULL);
+        ASSERT_TRUE(lines[1].find("\"Success\"") != std::string::npos);
+        ASSERT_TRUE(lines[1].find("\"test.mp4\"") != std::string::npos);
+        ASSERT_TRUE(lines[1].find("C:\\Source\\") != std::string::npos);
+        ASSERT_TRUE(lines[1].find("D:\\Dest\\") != std::string::npos);
+
+        RemoveFile(logPath);
+    }
+
+    // Test: LogTransfer discard
+    {
+        std::wstring logPath = testDir + L"\\transfer_discard.log";
+        RemoveFile(logPath);
+
+        CloseLogFile();
+        SetLogFilePath(logPath);
+        LogInfo(L"transfer header only");
+
+        EnableLogBuffer();
+        LogTransfer(L"test.mp4", L"C:\\Source", L"D:\\Dest", L"2026-01-01 00:00:00", L"Success");
+        DiscardLogBuffer();
+
+        // Verify only header in file
+        std::ifstream inFile(WStringToString(logPath));
+        std::string line;
+        std::vector<std::string> lines;
+        while (std::getline(inFile, line)) {
+            lines.push_back(line);
+        }
+        inFile.close();
+
+        ASSERT_EQ(lines.size(), 1ULL);
+        ASSERT_TRUE(lines[0].find("transfer header only") != std::string::npos);
+
+        RemoveFile(logPath);
+    }
+
+    // Test: Multiple buffer/flush cycles
+    {
+        std::wstring logPath = testDir + L"\\multi_cycle.log";
+        RemoveFile(logPath);
+
+        CloseLogFile();
+        SetLogFilePath(logPath);
+
+        // Cycle 1
+        EnableLogBuffer();
+        LogInfo(L"cycle1-msg");
+        FlushLogBuffer();
+
+        // Cycle 2
+        EnableLogBuffer();
+        LogInfo(L"cycle2-msg");
+        FlushLogBuffer();
+
+        // Verify both cycles in file
+        std::ifstream inFile(WStringToString(logPath));
+        std::string line;
+        std::vector<std::string> lines;
+        while (std::getline(inFile, line)) {
+            lines.push_back(line);
+        }
+        inFile.close();
+
+        ASSERT_EQ(lines.size(), 2ULL);
+        ASSERT_TRUE(lines[0].find("cycle1-msg") != std::string::npos);
+        ASSERT_TRUE(lines[1].find("cycle2-msg") != std::string::npos);
+
+        RemoveFile(logPath);
+    }
+
+    // Test: Empty buffer flush is safe
+    {
+        EnableLogBuffer();
+        // Don't add any messages
+        FlushLogBuffer();
+        // Should not crash
+    }
+
+    // Test: Empty buffer discard is safe
+    {
+        EnableLogBuffer();
+        // Don't add any messages
+        DiscardLogBuffer();
+        // Should not crash
+    }
+
+    // Test: SetLogFilePath enables logging
+    {
+        std::wstring logPath = testDir + L"\\setpath_test.log";
+        RemoveFile(logPath);
+
+        CloseLogFile();
+        SetLogFilePath(logPath);
+        LogInfo(L"setpath message");
+
+        // Verify message written
+        std::ifstream inFile(WStringToString(logPath));
+        std::string line;
+        std::vector<std::string> lines;
+        while (std::getline(inFile, line)) {
+            lines.push_back(line);
+        }
+        inFile.close();
+
+        ASSERT_EQ(lines.size(), 1ULL);
+        ASSERT_TRUE(lines[0].find("setpath message") != std::string::npos);
+
+        RemoveFile(logPath);
+    }
+
+    // Test: CloseLogFile writes LOG file closed record
+    {
+        std::wstring logPath = testDir + L"\\close_test.log";
+        RemoveFile(logPath);
+
+        CloseLogFile();
+        SetLogFilePath(logPath);
+        LogInfo(L"before close");
+        CloseLogFile();
+
+        // Verify LOG file closed record
+        std::ifstream inFile(WStringToString(logPath));
+        std::string line;
+        std::vector<std::string> lines;
+        while (std::getline(inFile, line)) {
+            lines.push_back(line);
+        }
+        inFile.close();
+
+        ASSERT_EQ(lines.size(), 2ULL);
+        ASSERT_TRUE(lines[0].find("before close") != std::string::npos);
+        ASSERT_TRUE(lines[1].find("LOG file closed") != std::string::npos);
+
+        RemoveFile(logPath);
+    }
+
+    // Test: CSV format — status first, all fields quoted, trailing backslash
+    {
+        std::wstring logPath = testDir + L"\\csv_format_test.log";
+        RemoveFile(logPath);
+
+        CloseLogFile();
+        SetLogFilePath(logPath);
+        LogTransfer(L"file with spaces.mp4", L"C:\\Source Dir", L"D:\\Dest Dir", L"2026-01-01 00:00:00", L"Success");
+
+        std::ifstream inFile(WStringToString(logPath));
+        std::string line;
+        std::vector<std::string> lines;
+        while (std::getline(inFile, line)) {
+            lines.push_back(line);
+        }
+        inFile.close();
+
+        ASSERT_EQ(lines.size(), 1ULL);
+        // Status first
+        ASSERT_TRUE(lines[0].find("\"Success\",") == 0);
+        // All fields quoted
+        ASSERT_TRUE(lines[0].find("\"file with spaces.mp4\"") != std::string::npos);
+        ASSERT_TRUE(lines[0].find("\"C:\\Source Dir\\\"") != std::string::npos);
+        ASSERT_TRUE(lines[0].find("\"D:\\Dest Dir\\\"") != std::string::npos);
+        // Trailing backslash on directories (escaped in CSV as \\)
+        ASSERT_TRUE(lines[0].find("Source Dir") != std::string::npos);
+        ASSERT_TRUE(lines[0].find("Dest Dir") != std::string::npos);
+
+        RemoveFile(logPath);
+    }
+
+    // Test: Rejected CSV entry format
+    {
+        std::wstring logPath = testDir + L"\\rejected_test.log";
+        RemoveFile(logPath);
+
+        CloseLogFile();
+        SetLogFilePath(logPath);
+        LogTransfer(L"file.mp4", L"C:\\Source", L"", L"2026-01-01 00:00:00", L"Rejected - Already queued");
+
+        std::ifstream inFile(WStringToString(logPath));
+        std::string line;
+        std::vector<std::string> lines;
+        while (std::getline(inFile, line)) {
+            lines.push_back(line);
+        }
+        inFile.close();
+
+        ASSERT_EQ(lines.size(), 1ULL);
+        ASSERT_TRUE(lines[0].find("\"Rejected - Already queued\"") == 0);
+        ASSERT_TRUE(lines[0].find("\"file.mp4\"") != std::string::npos);
+
+        RemoveFile(logPath);
+    }
+
+    // Test: Unicode filename in CSV
+    {
+        std::wstring logPath = testDir + L"\\unicode_test.log";
+        RemoveFile(logPath);
+
+        CloseLogFile();
+        SetLogFilePath(logPath);
+        LogTransfer(L"file_with_emoji_\U0001F480.mp4", L"C:\\Source", L"D:\\Dest", L"2026-01-01 00:00:00", L"Success");
+
+        std::ifstream inFile(WStringToString(logPath));
+        std::string line;
+        std::vector<std::string> lines;
+        while (std::getline(inFile, line)) {
+            lines.push_back(line);
+        }
+        inFile.close();
+
+        ASSERT_EQ(lines.size(), 1ULL);
+        // Emoji should be present as UTF-8 bytes
+        ASSERT_TRUE(lines[0].find("file_with_emoji_") != std::string::npos);
+        ASSERT_TRUE(lines[0].find("mp4") != std::string::npos);
+
+        RemoveFile(logPath);
+    }
+
+    // Clean up
+    RemoveDirectoryTree(testDir);
+    CloseLogFile();
+
+    std::cout << "  logging_buffer tests done." << std::endl;
 }
 
 // ==================== queue_manager tests ====================
@@ -2412,6 +2746,7 @@ int main() {
     TestCmdlineParser();
     TestFileIo();
     TestJsonParser();
+    TestLoggingBuffer();
     TestQueueManager();
     TestPreserveDirectoryStructure();
     TestCreateEmptyDirectories();

@@ -111,6 +111,8 @@ Accessed via gear button > `Active JSON`. Shows:
 
 The Active JSON window closes automatically after successfully opening or creating a JSON file.
 
+**Log file switching:** When you switch JSON files, the log file switches to match the new JSON file's base name. The old log file receives a `LOG file closed` record. The new log file starts with `LOG file opened` and `JSON file switched` records, followed by the load operation entries. A blank line separates old content from new entries when appending to an existing log file.
+
 ### Queue Window
 
 Accessed via gear button > `Queue Window`. Non-modal window showing:
@@ -239,15 +241,21 @@ Location: `%AppData%\Roaming\FileMove\<BaseName>.log`
 
 The log file contains two types of records:
 
-**Transfer records** (CSV format):
+**Transfer records** (CSV format, status first, all fields quoted, directories end with `\`):
 ```
-"Report.pdf","C:\Users\Brad\Downloads","Z:\Accounting","2026-06-09 10:42:18","Success"
+"Success","Report.pdf","C:\Users\Brad\Downloads\","Z:\Accounting\","2026-06-09 10:42:18"
+```
+
+**Rejected entries** (logged when files are rejected during queue preparation, destination empty):
+```
+"Rejected - Already queued","Report.pdf","C:\Users\Brad\Downloads","","2026-06-09 10:42:18"
 ```
 
 **Info records** (prefixed with `---->`):
 ```
 ----> App started: 2026-06-09 10:41:03
 ----> JSON file opened: 2026-06-09 10:41:03 (C:\Data\Groups.json)
+----> LOG file closed: 2026-06-09 10:45:00
 ```
 
 Log files are automatically trimmed when they exceed 60 KB (reduced to 50 KB by removing oldest entries).

@@ -2,7 +2,7 @@
 
 ## Unit Tests
 
-The test harness (`tests/test_harness.cpp`) provides 320 unit tests across ten modules. Tests run as a console application with no external dependencies.
+The test harness (`tests/test_harness.cpp`) provides 384 unit tests across ten modules. Tests run as a console application with no external dependencies.
 
 ### Running Tests
 
@@ -34,7 +34,7 @@ Testing cmdline_parser...
   cmdline_parser tests done.
 ...
 ==============================
-Results: 320 passed, 0 failed
+Results: 384 passed, 0 failed
 ```
 
 ### Module: cmdline_parser (45 tests)
@@ -63,7 +63,7 @@ Results: 320 passed, 0 failed
 | `EnsureDirectoryExists` recursive creation | 2 |
 | `EnumerateDirectoryFiles` recursive enumeration | 1 |
 
-### Module: json_parser (29 tests)
+### Module: json_parser (30 tests)
 
 | Category | Tests |
 |---|---|
@@ -72,7 +72,7 @@ Results: 320 passed, 0 failed
 | Empty file (0 bytes) loads as default | 3 |
 | Malformed JSON returns false | 3 |
 | Legacy `DestinationPath` migration | 4 |
-| `GenerateGroupId` uniqueness | 4 |
+| `GenerateGroupId` uniqueness and GUID format (32-char hex) | 5 |
 | `GetIsoTimestamp` ISO 8601 format validation | 3 |
 | Multiple groups save/load | 1 |
 
@@ -211,6 +211,10 @@ These scenarios require manual execution of the built application.
 4. Verify groups reload from selected file
 5. Verify Active JSON window closes automatically
 6. Verify active `.log` file switches to matching base name
+7. Verify old log file ends with `LoadAppData: attempting to load <path>` followed by `----> LOG file closed: <timestamp>`
+8. Verify new log file starts with `----> LOG file opened`, `----> JSON file switched`, then buffered LoadAppData entries
+9. Verify a blank line separates old content from new entries when switching to an existing non-empty log file
+10. On switch failure: verify old log stays open, failure is logged, and buffer is discarded
 
 ### Scenario 7: Settings Persistence
 
@@ -247,6 +251,17 @@ These scenarios require manual execution of the built application.
 4. Verify empty leaf subdirectories are recreated at each destination
 5. Verify non-leaf empty directories (those containing other empty dirs) are not separately created
 
+### Scenario 11: JSON File Switching Log Verification
+
+1. Launch FileMove with an existing JSON file that has prior log entries
+2. Note the current log file path and content
+3. Open Active JSON window, select a different JSON file
+4. Verify old log file's last entries: `LoadAppData: attempting to load <new-path>` then `----> LOG file closed: <timestamp>`
+5. Verify new log file's first entries: `----> LOG file opened`, `----> JSON file switched`, then the buffered `LoadAppData` entries
+6. Verify blank line separates old content from new entries in the new log file
+7. Trigger a switch failure (e.g., select a malformed JSON file)
+8. Verify old log remains open, failure is logged, and no buffer entries appear in any log
+
 ## Debug Mode Testing
 
 ### MV Mode (Normal Move)
@@ -274,8 +289,12 @@ FileMove.exe /D CP
 After any file operation, verify the `.log` file contains:
 
 1. `---->` records for app start, JSON/log file open, command-line options
-2. CSV transfer records: `"FileName","SourceDir","DestDir","Timestamp","Success"`
-3. Cancellation records with `Canceled during shutdown` result
-4. Error records with descriptive failure reasons
+2. `----> LOG file closed: <timestamp>` record when closing a log file
+3. CSV transfer records (status first, all fields quoted, directories end with `\`):
+   `"Success","file.mp4","C:\Source\","D:\Dest\","2026-07-23 12:00:00"`
+4. Rejected CSV entries for queue rejections (destination empty):
+   `"Rejected - Already queued","file.mp4","C:\Source","","2026-07-23 12:00:00"`
+5. Cancellation records with `Canceled during shutdown` result
+6. Error records with descriptive failure reasons
 
 Default log location: `%AppData%\Roaming\FileMove\FileMove.log`
