@@ -636,12 +636,14 @@ Transfer records:
 
 - One completed file operation per line
 - Written in CSV format
-- Fields:
+- All fields are always enclosed in double quotes
+- Source and Destination Directory fields end with a trailing backslash (`\`) to indicate they are directories
+- Fields (in order):
+  - Result: `Success`, `Failed - <reason>`, `Canceled during shutdown`, or `Rejected - <reason>`
   - File Name
-  - Source Directory
-  - Destination Directory
+  - Source Directory (trailing `\`)
+  - Destination Directory (trailing `\`; empty for rejected entries)
   - Date and time of the completed operation
-  - `Success` or the reason for failure
 
 Canceled transfers should also be logged in the same CSV format:
 
@@ -715,6 +717,66 @@ Example non-transfer records:
 ```
 
 When switching JSON files via the Active JSON window, a "JSON file switched" record is logged followed by the same settings summary (Sort mode, Placement mode, Window size, Window position) as at startup. A "LOG file closed" record is written just before the log file is closed on shutdown.
+
+#### Log file switching behavior
+
+When the user switches to a different JSON file via the Active JSON window, the log file switches to follow the JSON file. The sequence is:
+
+1. Log "LoadAppData: attempting to load" to the **old** log file (buffered).
+2. Close the old log file, writing "LOG file closed" to the **old** log file.
+3. Open the new log file, writing "LOG file opened" to the **new** log file.
+4. If the new log file already exists and is non-empty, write a blank line separator before appending.
+5. Flush buffered entries to the **new** log file.
+6. Log "JSON file switched" with settings summary to the **new** log file.
+
+This ensures that each log file accurately reflects only the operations performed while its associated JSON file was active. The old log file ends with "LOG file closed", and the new log file begins with "LOG file opened" (and a blank line separator if the file was pre-existing).
+
+Example log file switch (old log `C:\Data\Groups.log`):
+
+```text
+----> App started: 2026-04-25 10:41:03
+----> LOG file opened: 2026-04-25 10:41:03 (C:\Data\Groups.log)
+----> JSON file opened: 2026-04-25 10:41:03 (C:\Data\Groups.json)
+----> Sort mode: MostRecentlyUsed
+----> Placement mode: UpperLeft
+----> Window size: 320 x 500
+----> Window position: Left 0, Top 0
+----> LoadAppData: attempting to load C:\Data\Groups.json
+----> LoadAppData: loaded 3 groups from C:\Data\Groups.json
+----> LoadAppData: settings applied from C:\Data\Groups.json
+----> LOG file closed: 2026-04-25 10:45:12
+```
+
+Example log file switch (new log `C:\Data\OtherGroups.log`, previously empty):
+
+```text
+----> LOG file opened: 2026-04-25 10:45:12 (C:\Data\OtherGroups.log)
+----> LoadAppData: attempting to load C:\Data\OtherGroups.json
+----> JSON file switched: 2026-04-25 10:45:12 (C:\Data\OtherGroups.json)
+----> Sort mode: MostRecentlyUsed
+----> Placement mode: UpperLeft
+----> Window size: 320 x 500
+----> Window position: Left 0, Top 0
+----> LoadAppData: loaded 2 groups from C:\Data\OtherGroups.json
+----> LoadAppData: settings applied from C:\Data\OtherGroups.json
+```
+
+Example log file switch (new log `C:\Data\OtherGroups.log`, previously non-empty):
+
+```text
+----> LOG file opened: 2026-04-25 10:45:12 (C:\Data\OtherGroups.log)
+
+----> LoadAppData: attempting to load C:\Data\OtherGroups.json
+----> JSON file switched: 2026-04-25 10:45:12 (C:\Data\OtherGroups.json)
+----> Sort mode: MostRecentlyUsed
+----> Placement mode: UpperLeft
+----> Window size: 320 x 500
+----> Window position: Left 0, Top 0
+----> LoadAppData: loaded 2 groups from C:\Data\OtherGroups.json
+----> LoadAppData: settings applied from C:\Data\OtherGroups.json
+```
+
+Note the blank line separator in the third example, which distinguishes the new session from the previous log content.
 
 ### Debug mode behavior
 
@@ -1022,7 +1084,7 @@ Compatibility rule:
 - Restore the saved window height and width on startup.
 - Keep the restored window fully within the bounds of the current screen.
 - If the active JSON file is changed from the Active JSON window, immediately reload groups and settings from that file.
-- If the active JSON file is changed from the Active JSON window, immediately switch the active `.log` file to the matching base-name `.log` file in the default data directory.
+- If the active JSON file is changed from the Active JSON window, immediately switch the active `.log` file to the matching base-name `.log` file in the default data directory. Log entries generated during the switch are buffered and written to the new log file to ensure correct routing (see Log file switching behavior above).
 - If the active JSON file is changed from the Active JSON window successfully, close the Active JSON window automatically.
 - If the selected JSON file from the Active JSON window cannot be loaded because it is malformed or otherwise invalid, show an error message and keep the current JSON file and current `.log` file active.
 - If command-line parsing fails, or if startup file resolution fails, open the debug console, show the error and valid options when applicable, wait for `Enter`, and then exit.
