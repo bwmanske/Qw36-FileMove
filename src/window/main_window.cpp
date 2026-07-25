@@ -711,43 +711,60 @@ void MainWindow::OnCommand(int id) {
         }
         case IDM_STATUS: {
             auto onJsonFileOpen = [this](const std::wstring& jsonPath) -> bool {
-                // Close old log first so "LOG file closed" goes to the old file
-                CloseLogFile();
+                // Log switch attempt to OLD log file
+                LogInfo(L"LoadAppData: attempting to load " + jsonPath);
 
-                // Switch to new log path
-                gLogPath = GetDefaultDataDirectory() + L"\\" + GetBaseName(jsonPath) + L".log";
-                OpenLogFile(gLogPath);
+                // Enable buffering for LoadAppData messages
+                EnableLogBuffer();
 
-                LogInfo(L"LOG file opened: " + GetTimestamp() + L" (" + gLogPath + L")");
-                LogInfo(L"JSON file switched: " + GetTimestamp() + L" (" + jsonPath + L")");
-
-                // Now load the JSON — its internal LogInfo calls go to the new log
+                // Load JSON — all LogInfo calls go to buffer
                 AppData newData;
-                if (!LoadAppData(jsonPath, newData)) {
+                bool success = LoadAppData(jsonPath, newData);
+
+                if (success) {
+                    // Close old log (writes "LOG file closed" to old file)
+                    CloseLogFile();
+
+                    // Switch to new log path
+                    std::wstring newLogPath = GetDefaultDataDirectory() + L"\\" + GetBaseName(jsonPath) + L".log";
+                    SetLogFilePath(newLogPath);
+
+                    // Write headers to new log first
+                    LogInfo(L"LOG file opened: " + GetTimestamp() + L" (" + gLogPath + L")");
+                    LogInfo(L"JSON file switched: " + GetTimestamp() + L" (" + jsonPath + L")");
+
+                    // Flush buffered LoadAppData messages to new log
+                    FlushLogBuffer();
+
+                    gAppData = newData;
+                    gJsonPath = jsonPath;
+
+                    LogInfo(L"Sort mode: " + std::wstring(gAppData.settings.sortMode.begin(), gAppData.settings.sortMode.end()));
+                    LogInfo(L"Placement mode: " + std::wstring(gAppData.settings.placementMode.begin(), gAppData.settings.placementMode.end()));
+                    LogInfo(L"Window size: " + std::to_wstring(gAppData.settings.windowWidth) + L" x " + std::to_wstring(gAppData.settings.windowHeight));
+                    LogInfo(L"Window position: Left " + std::to_wstring(gAppData.settings.windowLeft) + L", Top " + std::to_wstring(gAppData.settings.windowTop));
+
+                    gQueueManager.SetEnableSidecarFiles(gAppData.settings.enableSidecarFiles);
+                    gQueueManager.SetHideQueuedSourceFiles(gAppData.settings.hideQueuedSourceFiles);
+                    gQueueManager.SetEnableDirectoryMoves(gAppData.settings.enableDirectoryMoves);
+                    gQueueManager.SetPreserveDirectoryStructure(gAppData.settings.preserveDirectoryStructure);
+                    gQueueManager.SetCreateEmptyDirectories(gAppData.settings.createEmptyDirectories);
+
+                    SetJsonBaseName(GetBaseName(jsonPath));
+                    SortMode sortMode = SortModeFromString(gAppData.settings.sortMode);
+                    UpdateGroups(gAppData.groups, sortMode);
+
+                    return true;
+                } else {
+                    // Discard buffered messages on failure
+                    DiscardLogBuffer();
+
+                    // Log failure to old log
+                    LogInfo(L"JSON file switch failed: " + jsonPath);
                     MessageBoxW(mHWND, L"Failed to load JSON file (malformed).",
                         L"Error", MB_ICONERROR);
                     return false;
                 }
-
-                gAppData = newData;
-                gJsonPath = jsonPath;
-
-                LogInfo(L"Sort mode: " + std::wstring(gAppData.settings.sortMode.begin(), gAppData.settings.sortMode.end()));
-                LogInfo(L"Placement mode: " + std::wstring(gAppData.settings.placementMode.begin(), gAppData.settings.placementMode.end()));
-                LogInfo(L"Window size: " + std::to_wstring(gAppData.settings.windowWidth) + L" x " + std::to_wstring(gAppData.settings.windowHeight));
-                LogInfo(L"Window position: Left " + std::to_wstring(gAppData.settings.windowLeft) + L", Top " + std::to_wstring(gAppData.settings.windowTop));
-
-                gQueueManager.SetEnableSidecarFiles(gAppData.settings.enableSidecarFiles);
-                gQueueManager.SetHideQueuedSourceFiles(gAppData.settings.hideQueuedSourceFiles);
-                gQueueManager.SetEnableDirectoryMoves(gAppData.settings.enableDirectoryMoves);
-                gQueueManager.SetPreserveDirectoryStructure(gAppData.settings.preserveDirectoryStructure);
-                gQueueManager.SetCreateEmptyDirectories(gAppData.settings.createEmptyDirectories);
-
-                SetJsonBaseName(GetBaseName(jsonPath));
-                SortMode sortMode = SortModeFromString(gAppData.settings.sortMode);
-                UpdateGroups(gAppData.groups, sortMode);
-
-                return true;
             };
 
             StatusDialog statusDlg;

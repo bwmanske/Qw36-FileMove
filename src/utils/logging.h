@@ -42,3 +42,15 @@ std::wstring GetLogFilePath();
 
 // Get the current timestamp as a formatted string.
 std::wstring GetTimestamp();
+
+// Enable log buffering (messages go to in-memory vector instead of file)
+void EnableLogBuffer();
+
+// Flush buffered messages to the current log file, clear buffer
+void FlushLogBuffer();
+
+// Discard buffered messages without writing, clear buffer
+void DiscardLogBuffer();
+
+// Set log file path directly (used after CloseLogFile for switch)
+void SetLogFilePath(const std::wstring& logPath);

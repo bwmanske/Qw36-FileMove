@@ -12,6 +12,8 @@
 static HANDLE gConsoleHandle = INVALID_HANDLE_VALUE;
 static std::wstring gLogPath;
 static bool gLogFileOpen = false;
+static std::vector<std::string> gLogBuffer;
+static bool gLogBuffering = false;
 
 static std::string WStringToUtf8(const std::wstring& s) {
     if (s.empty()) return "";
@@ -179,13 +181,18 @@ static std::string EscapeCsvFieldUtf8(const std::string& field) {
 }
 
 void LogInfo(const std::wstring& message) {
-    if (!gLogFileOpen) return;
+    if (!gLogFileOpen && !gLogBuffering) return;
 
-    std::string utf8Path = WStringToUtf8(gLogPath);
-    std::ofstream outFile(utf8Path, std::ios::app | std::ios::binary);
-    if (!outFile.is_open()) return;
-    outFile << "----> " << WStringToUtf8(message) << "\n";
-    outFile.close();
+    std::string line = "----> " + WStringToUtf8(message);
+    if (gLogBuffering) {
+        gLogBuffer.push_back(line);
+    } else {
+        std::string utf8Path = WStringToUtf8(gLogPath);
+        std::ofstream outFile(utf8Path, std::ios::app | std::ios::binary);
+        if (!outFile.is_open()) return;
+        outFile << line << "\n";
+        outFile.close();
+    }
 
     DebugConsoleWriteLine(L"----> " + message);
 }
@@ -195,7 +202,7 @@ void LogTransfer(const std::wstring& fileName,
                   const std::wstring& destDir,
                   const std::wstring& dateTime,
                   const std::wstring& result) {
-    if (!gLogFileOpen) return;
+    if (!gLogFileOpen && !gLogBuffering) return;
 
     // Ensure directories end with backslash
     std::wstring srcDir = sourceDir;
@@ -203,15 +210,55 @@ void LogTransfer(const std::wstring& fileName,
     std::wstring dstDir = destDir;
     if (!dstDir.empty() && dstDir.back() != L'\\') dstDir += L'\\';
 
+    std::string line = EscapeCsvFieldUtf8(WStringToUtf8(result)) + ","
+            + EscapeCsvFieldUtf8(WStringToUtf8(fileName)) + ","
+            + EscapeCsvFieldUtf8(WStringToUtf8(srcDir)) + ","
+            + EscapeCsvFieldUtf8(WStringToUtf8(dstDir)) + ","
+            + EscapeCsvFieldUtf8(WStringToUtf8(dateTime));
+
+    if (gLogBuffering) {
+        gLogBuffer.push_back(line);
+    } else {
+        std::string utf8Path = WStringToUtf8(gLogPath);
+        std::ofstream outFile(utf8Path, std::ios::app | std::ios::binary);
+        if (!outFile.is_open()) return;
+        outFile << line << "\n";
+        outFile.close();
+    }
+}
+
+void EnableLogBuffer() {
+    gLogBuffer.clear();
+    gLogBuffering = true;
+}
+
+void FlushLogBuffer() {
+    if (gLogBuffer.empty()) {
+        gLogBuffering = false;
+        return;
+    }
+
     std::string utf8Path = WStringToUtf8(gLogPath);
     std::ofstream outFile(utf8Path, std::ios::app | std::ios::binary);
-    if (!outFile.is_open()) return;
-    outFile << EscapeCsvFieldUtf8(WStringToUtf8(result)) << ","
-            << EscapeCsvFieldUtf8(WStringToUtf8(fileName)) << ","
-            << EscapeCsvFieldUtf8(WStringToUtf8(srcDir)) << ","
-            << EscapeCsvFieldUtf8(WStringToUtf8(dstDir)) << ","
-            << EscapeCsvFieldUtf8(WStringToUtf8(dateTime)) << "\n";
-    outFile.close();
+    if (outFile.is_open()) {
+        for (const auto& line : gLogBuffer) {
+            outFile << line << "\n";
+        }
+        outFile.close();
+    }
+
+    gLogBuffer.clear();
+    gLogBuffering = false;
+}
+
+void DiscardLogBuffer() {
+    gLogBuffer.clear();
+    gLogBuffering = false;
+}
+
+void SetLogFilePath(const std::wstring& logPath) {
+    gLogPath = logPath;
+    gLogFileOpen = true;
 }
 
 bool IsLogFileOpen() {
