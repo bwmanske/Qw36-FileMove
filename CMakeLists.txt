@@ -111,7 +111,7 @@ target_compile_definitions(FileMove PRIVATE
     _UNICODE
     WIN32_LEAN_AND_MEAN
     NOMINMAX
-    FILEMOVE_VERSION="${PROJECT_VERSION}"
+    FILEMOVE_VERSION=L"${PROJECT_VERSION}"
 )
 
 # ==================== Test Harness ====================
