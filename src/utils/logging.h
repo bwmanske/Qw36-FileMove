@@ -52,5 +52,8 @@ void FlushLogBuffer();
 // Discard buffered messages without writing, clear buffer
 void DiscardLogBuffer();
 
+// Prepend a blank line to the log buffer
+void PrependBlankLineToBuffer();
+
 // Set log file path directly (used after CloseLogFile for switch)
 void SetLogFilePath(const std::wstring& logPath);

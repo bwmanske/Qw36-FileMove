@@ -89,8 +89,6 @@ MainWindow::~MainWindow() {
 
 HWND MainWindow::Create(HINSTANCE hInstance, int nCmdShow) {
     mHInstance = hInstance;
-    DebugConsoleWriteLine(L"MainWindow::Create entered");
-    LogInfo(L"MainWindow::Create entered");
 
     // Load application icon from embedded resource
     HICON hIcon = LoadEmbeddedIcon(hInstance, 32);
@@ -733,6 +731,9 @@ void MainWindow::OnCommand(int id) {
                     LogInfo(L"LOG file opened: " + GetTimestamp() + L" (" + gLogPath + L")");
                     LogInfo(L"JSON file switched: " + GetTimestamp() + L" (" + jsonPath + L")");
 
+                    // Prepend blank line before buffered LoadAppData messages
+                    PrependBlankLineToBuffer();
+
                     // Flush buffered LoadAppData messages to new log
                     FlushLogBuffer();
 
@@ -740,9 +741,9 @@ void MainWindow::OnCommand(int id) {
                     gJsonPath = jsonPath;
 
                     LogInfo(L"Sort mode: " + std::wstring(gAppData.settings.sortMode.begin(), gAppData.settings.sortMode.end()));
-                    LogInfo(L"Placement mode: " + std::wstring(gAppData.settings.placementMode.begin(), gAppData.settings.placementMode.end()));
-                    LogInfo(L"Window size: " + std::to_wstring(gAppData.settings.windowWidth) + L" x " + std::to_wstring(gAppData.settings.windowHeight));
-                    LogInfo(L"Window position: Left " + std::to_wstring(gAppData.settings.windowLeft) + L", Top " + std::to_wstring(gAppData.settings.windowTop));
+                    LogInfo(L"Startup placement: mode=" + std::wstring(gAppData.settings.placementMode.begin(), gAppData.settings.placementMode.end()) +
+                        L", size=" + std::to_wstring(gAppData.settings.windowWidth) + L"x" + std::to_wstring(gAppData.settings.windowHeight) +
+                        L", savedPos=(" + std::to_wstring(gAppData.settings.windowLeft) + L"," + std::to_wstring(gAppData.settings.windowTop) + L")");
 
                     gQueueManager.SetEnableSidecarFiles(gAppData.settings.enableSidecarFiles);
                     gQueueManager.SetHideQueuedSourceFiles(gAppData.settings.hideQueuedSourceFiles);

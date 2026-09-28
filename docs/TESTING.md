@@ -1,8 +1,8 @@
-# FileMove v1.3.1 — Testing Guide
+# FileMove v1.3.6 — Testing Guide
 
 ## Unit Tests
 
-The test harness (`tests/test_harness.cpp`) provides 384 unit tests across ten modules. Tests run as a console application with no external dependencies.
+The test harness (`tests/test_harness.cpp`) provides 421 unit tests across ten modules. Tests run as a console application with no external dependencies.
 
 ### Running Tests
 
@@ -28,13 +28,13 @@ A simple inline test framework is used. Each test:
 
 Test output format:
 ```
-FileMove v1.3.1 - Unit Tests
+FileMove v1.3.6 - Unit Tests
 ==============================
 Testing cmdline_parser...
   cmdline_parser tests done.
 ...
 ==============================
-Results: 384 passed, 0 failed
+Results: 421 passed, 0 failed
 ```
 
 ### Module: cmdline_parser (45 tests)

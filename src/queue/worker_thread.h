@@ -81,6 +81,7 @@ public:
     std::string GetCurrentFile() const;
     std::string GetCurrentDest() const;
     std::string GetLastError() const;
+    void ClearLastError();
 
     // Check if worker is busy
     bool IsBusy() const;

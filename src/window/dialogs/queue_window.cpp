@@ -283,6 +283,11 @@ LRESULT CALLBACK QueueWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
                 instance->OnCommand(IDM_QUEUE_PAUSE_RESUME);
                 break;
             }
+            RECT clearErrRect = { instance->mClientRect.right - 155, 95, instance->mClientRect.right - 85, 115 };
+            if (PtInRect(&clearErrRect, pt)) {
+                instance->OnCommand(IDM_QUEUE_CLEAR_ERR);
+                break;
+            }
             break;
         }
 
@@ -384,6 +389,12 @@ void QueueWindow::OnCommand(int id) {
             }
             break;
         }
+        case IDM_QUEUE_CLEAR_ERR: {
+            gWorkerThread.ClearLastError();
+            mLastError.clear();
+            InvalidateRect(mHWND, NULL, TRUE);
+            break;
+        }
     }
 }
 
@@ -442,13 +453,21 @@ void QueueWindow::OnPaint(HDC hdc) {
     std::wstring leText = L"Last Queue Error: " + (mLastError.empty() ? L"None" : mLastError);
     DrawTextW(hdc, leText.c_str(), -1, &leRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
+    // Clear Err button (just above listbox, left of Pause)
+    RECT clearErrRect = { clientRect.right - 155, 95, clientRect.right - 85, 115 };
+    HBRUSH btnBrush = CreateSolidBrush(RGB(220, 220, 230));
+    FillRect(hdc, &clearErrRect, btnBrush);
+    DeleteObject(btnBrush);
+    FrameRect(hdc, &clearErrRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+    DrawTextW(hdc, L"\u2191 Clear Err", -1, &clearErrRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
     // Pause/Resume button (just above listbox)
     RECT pauseRect = { clientRect.right - 80, 95, clientRect.right - 10, 115 };
-    HBRUSH btnBrush = CreateSolidBrush(RGB(220, 220, 230));
+    btnBrush = CreateSolidBrush(RGB(220, 220, 230));
     FillRect(hdc, &pauseRect, btnBrush);
     DeleteObject(btnBrush);
     FrameRect(hdc, &pauseRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
-    DrawTextW(hdc, mIsPaused ? L"Resume" : L"Pause", -1, &pauseRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    DrawTextW(hdc, mIsPaused ? L"Resume" : L"Pause \u2193", -1, &pauseRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
     SelectObject(hdc, hOldFont);
     DeleteObject(hBoldFont);

@@ -256,6 +256,10 @@ void DiscardLogBuffer() {
     gLogBuffering = false;
 }
 
+void PrependBlankLineToBuffer() {
+    gLogBuffer.insert(gLogBuffer.begin(), "");
+}
+
 void SetLogFilePath(const std::wstring& logPath) {
     gLogPath = logPath;
     gLogFileOpen = true;

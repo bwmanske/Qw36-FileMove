@@ -7,13 +7,13 @@
 `CMakeLists.txt` defines the project with the following settings:
 
 - **Minimum CMake version**: 3.10
-- **Project version**: 1.3.1
+- **Project version**: 1.3.6
 - **C++ standard**: C++17 (required)
 - **Executable type**: WIN32 subsystem (no console on normal launch)
 
 ```cmake
 cmake_minimum_required(VERSION 3.10)
-project(FileMove VERSION 1.3.1 LANGUAGES CXX)
+project(FileMove VERSION 1.3.6 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 ```
@@ -73,7 +73,7 @@ add_executable(test_harness
 | `UNICODE` / `_UNICODE` | Wide-character API throughout |
 | `WIN32_LEAN_AND_MEAN` | Exclude rarely-used Windows headers |
 | `NOMINMAX` | Prevent min/max macro conflicts |
-| `FILEMOVE_VERSION` | Injected project version string (`"1.3.1"`) |
+| `FILEMOVE_VERSION` | Injected project version string (`"1.3.6"`) |
 | `FILEMOVE_BUILD_DATE_STR` | Generated at build time via PowerShell custom target into `GeneratedBuildConfig.h` |
 
 ### Embedded Resources
@@ -177,7 +177,7 @@ FileMove/
 │   └── nlohmann/
 │       └── json.hpp                  # nlohmann/json v3.11.3 (header-only)
 ├── tests/
-│   └── test_harness.cpp              # (Phase 7) Unit tests (384 tests)
+│       └── test_harness.cpp              # (Phase 7) Unit tests (421 tests)
 ├── assets/
 │   ├── icons/
 │   │   ├── FileMove-icon.ico         # Application icon (embedded at build)
@@ -189,9 +189,9 @@ FileMove/
 │       └── orange-question.png       # Directory undetermined status (embedded at build)
 └── specs/
     ├── FileMove-spec-v1.2.0.md
-    ├── FileMove-spec-v1.3.1.md
+    ├── FileMove-spec-v1.3.5.md
     ├── FileMove-mockups-v1.2.0.md
-    └── FileMove-mockups-v1.3.1.md
+    └── FileMove-mockups-v1.3.5.md
 ```
 
 ## Phase 1: Entry Point & Window Scaffold
@@ -301,12 +301,13 @@ Provides debug console output and log file writing.
 - `EnableLogBuffer()` — Enables buffering; subsequent log entries are held in memory instead of written to disk
 - `FlushLogBuffer()` — Writes all buffered entries to the currently active log file
 - `DiscardLogBuffer()` — Discards all buffered entries without writing
+- `PrependBlankLineToBuffer()` — Prepends a blank line to the buffer (used before flushing LoadAppData messages on JSON switch)
 - `SetLogFilePath(path)` — Changes the active log file path (used during JSON file switching)
 
 **Log file switching flow:**
 1. Before switching JSON files, `EnableLogBuffer()` is called
 2. `LoadAppData` for the new file logs `LoadAppData: attempting to load <path>` (buffered)
-3. If load succeeds: `CloseLogFile()` writes `LOG file closed` to old file, `SetLogFilePath()` switches to new log, `OpenLogFile()` writes `LOG file opened` and `JSON file switched`, then `FlushLogBuffer()` writes buffered entries
+3. If load succeeds: `CloseLogFile()` writes `LOG file closed` to old file, `SetLogFilePath()` switches to new log, `OpenLogFile()` writes `LOG file opened` and `JSON file switched`, then `PrependBlankLineToBuffer()` adds a blank line before the buffered entries, then `FlushLogBuffer()` writes buffered entries
 4. If load fails: old log stays open, failure is logged directly, `DiscardLogBuffer()` discards buffered entries
 
 **Log format:**
@@ -654,7 +655,7 @@ Modal About window showing build information.
 **Layout:**
 - Centered 128x128 image from `assets/images/about-image.png`
 - "Build Information" header
-- "Version: 1.3.1" (left) and "Built On: DATE TIME" (right) on same line
+- "Version: 1.3.6" (left) and "Built On: DATE TIME" (right) on same line
 - "Command Line:" followed by current run's arguments
 - Description text
 
@@ -742,7 +743,8 @@ Modeless Queue window showing queue status and currently queued destination file
 **Layout:**
 - Title bar shows "Queue (N)" with current count
 - **Queue Status section:** Queued/Processed count, Worker State, Current File, Current Destination, Last Queue Error
-- **Pause/Resume button** positioned just above the listbox
+- **↑ Clear Err** button — clears the last queue error and resets status to "None"
+- **Pause/Resume** and **↑ Clear Err** buttons positioned just above the listbox
 - Listbox of destination file paths
 - **Delete** button — removes selected entries (enabled only during Manual Pause)
 - **Empty** button — removes all entries with confirmation (enabled only during Manual Pause)
@@ -754,7 +756,8 @@ Modeless Queue window showing queue status and currently queued destination file
 - Global instance `gQueueWindow` allows access from anywhere
 - Created once, subsequent menu clicks bring it to foreground
 - 500ms timer refreshes both queue list and queue status data
-- Pause/Resume toggles worker thread state; button text switches between "Pause" and "Resume"
+- Pause/Resume toggles worker thread state; button text switches between "Pause ↓" and "Resume"
+- ↑ Clear Err clears the last queue error from the worker thread and resets the displayed error to "None"
 - Delete/Empty buttons are disabled when worker is active or idle; enabled only during Manual Pause
 
 ### `src/window/dialogs/search.h/cpp`
@@ -974,7 +977,7 @@ Each dialog uses its own ID range to avoid conflicts:
 | Group Menu | 2001-2003 | Use Clipboard, Edit, Delete |
 | Settings | 3001-3030 | Sort radios, Placement radios, Options, OK/Cancel |
 | Status | 4001-4004 | Open Log, Pause/Resume, New, Open Selected |
-| Queue | 5001-5004 | Pause/Resume, Delete, Empty, Close |
+| Queue | 5001-5005 | Pause/Resume, Delete, Empty, Clear Err, Close |
 | Group Editor | 6001-6004 | Add/Delete Dest, OK/Cancel |
 | Search | 7001 | Close |
 | New File | 8001-8002 | OK/Cancel |
@@ -1145,7 +1148,7 @@ All assets are embedded into the executable at build time via a Windows resource
 **Run:** `build/Release/test_harness.exe`
 **CMake:** `ctest --config Release`
 
-### Test Coverage (384 tests)
+### Test Coverage (421 tests)
 
 **cmdline_parser (45 tests):**
 - Empty command line, valid/invalid `/D` values (MV, CP, case insensitive)

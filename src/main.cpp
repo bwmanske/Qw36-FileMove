@@ -77,7 +77,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // Open debug console if D was specified
     if (gParsedArgs.debugModeSpecified) {
         OpenDebugConsole();
-        DebugConsoleWriteLine(L"FileMove v1.3.1 - Debug Mode");
+        DebugConsoleWriteLine(L"FileMove v1.3.6 - Debug Mode");
         DebugConsoleWriteLine(std::wstring(L"Built: ") + FILEMOVE_BUILD_DATE_STR);
         DebugConsoleWriteLine(L"Debug transfer mode: " +
             std::wstring(gParsedArgs.debugMode == DebugMode::MV ? L"MV" : L"CP"));
@@ -95,10 +95,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // Open log file
     OpenLogFile(gLogPath);
     LogInfo(L"App started: " + GetTimestamp());
-    LogInfo(L"FileMove v1.3.1");
+    LogInfo(L"FileMove v1.3.6");
     LogInfo(std::wstring(L"Built: ") + FILEMOVE_BUILD_DATE_STR);
-    LogInfo(L"LOG file opened: " + GetTimestamp() + L" (" + gLogPath + L")");
     LogInfo(L"Command line options: " + gCommandLine);
+    LogInfo(L"LOG file opened: " + GetTimestamp() + L" (" + gLogPath + L")");
 
     if (gParsedArgs.debugModeSpecified) {
         DebugConsoleWriteLine(L"JSON file: " + gJsonPath);
@@ -148,9 +148,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     LogInfo(L"Sort mode: " + std::wstring(gAppData.settings.sortMode.begin(), gAppData.settings.sortMode.end()));
-    LogInfo(L"Placement mode: " + std::wstring(gAppData.settings.placementMode.begin(), gAppData.settings.placementMode.end()));
-    LogInfo(L"Window size: " + std::to_wstring(gAppData.settings.windowWidth) + L" x " + std::to_wstring(gAppData.settings.windowHeight));
-    LogInfo(L"Window position: Left " + std::to_wstring(gAppData.settings.windowLeft) + L", Top " + std::to_wstring(gAppData.settings.windowTop));
 
     // Initialize queue manager with settings
     InitQueueManager();
@@ -216,13 +213,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     // Create main window
-    DebugConsoleWriteLine(L"About to create main window...");
-    LogInfo(L"About to create main window");
     HWND hWnd = gMainWindow.Create(hInstance, nCmdShow);
-    if (hWnd) {
-        DebugConsoleWriteLine(L"Main window created successfully, HWND=" + std::to_wstring(reinterpret_cast<ULONG_PTR>(hWnd)));
-        LogInfo(L"Main window created successfully");
-    } else {
+    if (!hWnd) {
         DebugConsoleWriteLine(L"ERROR: Main window creation returned NULL!");
         LogInfo(L"ERROR: Main window creation returned NULL!");
     }

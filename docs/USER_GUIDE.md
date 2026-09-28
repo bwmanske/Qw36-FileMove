@@ -1,4 +1,4 @@
-# FileMove v1.3.1 — User Guide
+# FileMove v1.3.6 — User Guide
 
 ## Overview
 
@@ -117,6 +117,7 @@ The Active JSON window closes automatically after successfully opening or creati
 
 Accessed via gear button > `Queue Window`. Non-modal window showing:
 - **Queue Status** section at top: `Queued / Processed:` counts, Worker State, Current File, Current Destination, Last Queue Error
+- **↑ Clear Err** button — clears the last queue error and resets status to "None"
 - **Pause / Resume** button just above the listbox to toggle the worker thread pause state
 - All destination file paths currently queued or in progress
 - Live-updating list as files are added and processed

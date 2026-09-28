@@ -2737,10 +2737,67 @@ static void TestReplaceAllConflict() {
     std::cout << "  replace_all_conflict tests done." << std::endl;
 }
 
+// ==================== Nested destination directory creation (regression) ====================
+
+static void TestNestedDestDirCreation() {
+    std::cout << "Testing nested_dest_dir_creation..." << std::endl;
+
+    std::wstring testDir = L"C:\\Users\\brad\\AppData\\Local\\Temp\\opencode\\filemove_test";
+    EnsureCleanTestDir(testDir);
+
+    gQueueManager.SetEnableDirectoryMoves(true);
+    gQueueManager.SetPreserveDirectoryStructure(true);
+    gQueueManager.SetCreateEmptyDirectories(false);
+
+    // Source: testDir\Directory 1\Directory 2\Target file
+    std::wstring srcRoot = testDir + L"\\Directory 1";
+    std::wstring srcSub = srcRoot + L"\\Directory 2";
+    EnsureDirectoryExists(srcSub);
+    std::wstring srcFile = srcSub + L"\\Target file";
+    CreateTempFile(srcFile, L"target content");
+
+    // Destination exists, but the nested subdirectories do not
+    std::wstring destDir = testDir + L"\\dest";
+    EnsureDirectoryExists(destDir);
+
+    std::wstring error;
+    bool ok = gQueueManager.PrepareBatch("grp-nested-1", {WStringToString(srcRoot)}, {WStringToString(destDir)}, error);
+    ASSERT_TRUE(ok);
+
+    gQueueManager.ReleasePreparedEntries();
+    gWorkerThread.Start();
+
+    int waitCount = 0;
+    while (!gQueueManager.IsEmpty() && waitCount < 100) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        waitCount++;
+    }
+
+    gWorkerThread.Stop();
+    gWorkerThread.WaitForCompletion();
+
+    // File must exist at the fully nested destination path
+    std::wstring expected = destDir + L"\\Directory 1\\Directory 2\\Target file";
+    ASSERT_TRUE(FileExists(expected));
+
+    // Source must have been removed (move mode)
+    ASSERT_FALSE(FileExists(srcFile));
+
+    // Clean up
+    RemoveDirectoryTreeRecursive(destDir);
+    RemoveDirectoryTreeRecursive(srcRoot);
+    RemoveDirectoryTreeRecursive(testDir);
+
+    gQueueManager.SetPreserveDirectoryStructure(false);
+    gQueueManager.SetEnableDirectoryMoves(false);
+
+    std::cout << "  nested_dest_dir_creation tests done." << std::endl;
+}
+
 // ==================== Main ====================
 
 int main() {
-    std::cout << "FileMove v1.3.1 - Unit Tests" << std::endl;
+    std::cout << "FileMove v1.3.6 - Unit Tests" << std::endl;
     std::cout << "==============================" << std::endl;
 
     TestCmdlineParser();
@@ -2755,6 +2812,7 @@ int main() {
     TestFindEmptyDirectories();
     TestSourceDestConflictStructure();
     TestReplaceAllConflict();
+    TestNestedDestDirCreation();
 
     std::cout << "==============================" << std::endl;
     std::cout << "Results: " << gPassed << " passed, " << gFailed << " failed" << std::endl;

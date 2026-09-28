@@ -11,7 +11,8 @@ enum QueueButtons {
     IDM_QUEUE_CLOSE = 5001,
     IDM_QUEUE_PAUSE_RESUME,
     IDM_QUEUE_DELETE,
-    IDM_QUEUE_EMPTY
+    IDM_QUEUE_EMPTY,
+    IDM_QUEUE_CLEAR_ERR
 };
 
 // Custom message for async queue refresh from worker thread

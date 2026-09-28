@@ -142,6 +142,11 @@ std::string WorkerThread::GetLastError() const {
     return mLastError;
 }
 
+void WorkerThread::ClearLastError() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    mLastError.clear();
+}
+
 void WorkerThread::WorkerLoop() {
     while (mRunning.load() && !mStopping.load()) {
         // Check for pause
@@ -196,13 +201,9 @@ void WorkerThread::WorkerLoop() {
 
 static void CreateParentDirectories(const std::wstring& filePath) {
     size_t pos = filePath.find_last_of(L"\\/");
-    while (pos != std::wstring::npos) {
-        std::wstring dir = filePath.substr(0, pos);
-        if (!DirectoryExists(dir)) {
-            CreateDirectoryW(dir.c_str(), NULL);
-        }
-        pos = dir.find_last_of(L"\\/");
-    }
+    if (pos == std::wstring::npos || pos == 0) return;
+    std::wstring parent = filePath.substr(0, pos);
+    EnsureDirectoryExists(parent);
 }
 
 void WorkerThread::ProcessEntry(const PendingMoveEntry& entry) {
@@ -350,7 +351,7 @@ void WorkerThread::ProcessEntry(const PendingMoveEntry& entry) {
                 emptyDestPath += emptyRelDir;
                 std::wstring wideEmptyPath = StringToWString(emptyDestPath);
                 if (!DirectoryExists(wideEmptyPath)) {
-                    CreateDirectoryW(wideEmptyPath.c_str(), NULL);
+                    EnsureDirectoryExists(wideEmptyPath);
                     std::wstring msg = L"Created empty directory: " + wideEmptyPath;
                     LogInfo(msg);
                     DebugConsoleWriteLine(msg);
