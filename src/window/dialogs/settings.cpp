@@ -40,8 +40,15 @@
 #define LB_SETCURSEL 387
 #endif
 
+// Reads an option checkbox's state. A grayed-out (disabled) option is
+// treated as unchecked, per the parent/child Options rule.
+static bool ReadOptionChecked(HWND hwnd) {
+    if (!IsWindowEnabled(hwnd)) return false;
+    return SendMessageW(hwnd, BM_GETCHECK, 0, 0) == BST_CHECKED;
+}
+
 SettingsDialog::SettingsDialog()
-    : mHWND(NULL), mAccepted(false), mPreserveStructureHwnd(NULL), mCreateEmptyDirsHwnd(NULL)
+    : mHWND(NULL), mAccepted(false), mDeleteEmptyDirHwnd(NULL), mDeleteEmptyDirStructureHwnd(NULL), mPreserveStructureHwnd(NULL), mCreateEmptyDirsHwnd(NULL)
 {
 }
 
@@ -74,7 +81,7 @@ bool SettingsDialog::Show(HWND parent, AppSettings& settings) {
         L"FileMoveSettingsClass",
         L"Settings",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-        CW_USEDEFAULT, CW_USEDEFAULT, 400, 373,
+        CW_USEDEFAULT, CW_USEDEFAULT, 400, 413,
         parent, NULL, hInstance, this
     );
 
@@ -188,12 +195,30 @@ bool SettingsDialog::Show(HWND parent, AppSettings& settings) {
     y += 20;
 
     // Checkboxes
+    // "Delete Empty Directory" (independent, single level) - not indented, above "Move directories..."
+    mDeleteEmptyDirHwnd = CreateWindowExW(0, WC_BUTTONW, L"Delete Empty Directory",
+        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        15, y, 345, 18,
+        mHWND, reinterpret_cast<HMENU>(IDM_OPT_DELETE_EMPTY_DIR), hInstance, NULL);
+    SendMessageW(mDeleteEmptyDirHwnd, WM_SETFONT, reinterpret_cast<WPARAM>(hCtrlFont), MAKELPARAM(TRUE, 0));
+    if (settings.deleteEmptyDirectory) SendMessageW(mDeleteEmptyDirHwnd, BM_SETCHECK, BST_CHECKED, 0);
+
+    y += 20;
     HWND hCb1 = CreateWindowExW(0, WC_BUTTONW, L"Move directories with subdirectories and files",
         WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
         15, y, 345, 18,
         mHWND, reinterpret_cast<HMENU>(IDM_OPT_DIRECTORY_MOVES), hInstance, NULL);
     SendMessageW(hCb1, WM_SETFONT, reinterpret_cast<WPARAM>(hCtrlFont), MAKELPARAM(TRUE, 0));
     if (settings.enableDirectoryMoves) SendMessageW(hCb1, BM_SETCHECK, BST_CHECKED, 0);
+
+    y += 20;
+    mDeleteEmptyDirStructureHwnd = CreateWindowExW(0, WC_BUTTONW, L"Delete empty directory Structure",
+        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        35, y, 325, 18,
+        mHWND, reinterpret_cast<HMENU>(IDM_OPT_DELETE_EMPTY_DIR_STRUCTURE), hInstance, NULL);
+    SendMessageW(mDeleteEmptyDirStructureHwnd, WM_SETFONT, reinterpret_cast<WPARAM>(hCtrlFont), MAKELPARAM(TRUE, 0));
+    if (settings.deleteEmptyDirectoryStructure) SendMessageW(mDeleteEmptyDirStructureHwnd, BM_SETCHECK, BST_CHECKED, 0);
+    EnableWindow(mDeleteEmptyDirStructureHwnd, settings.enableDirectoryMoves);
 
     y += 20;
     mPreserveStructureHwnd = CreateWindowExW(0, WC_BUTTONW, L"Preserve directory structure at destination",
@@ -355,7 +380,20 @@ void SettingsDialog::OnCommand(int id) {
         }
         case IDM_OPT_DIRECTORY_MOVES: {
             bool checked = (SendMessageW(GetDlgItem(mHWND, IDM_OPT_DIRECTORY_MOVES), BM_GETCHECK, 0, 0) == BST_CHECKED);
+            // Direct children of "Move directories"
+            EnableWindow(mDeleteEmptyDirStructureHwnd, checked);
             EnableWindow(mPreserveStructureHwnd, checked);
+            // "Create empty directories" is a grandchild (child of "Preserve structure").
+            // Rule #1: if "Move directories" is unchecked, the grandchild is grayed out.
+            // Rule #2: if "Move directories" is checked, apply Rule #1 to "Preserve structure".
+            bool preserveChecked = (SendMessageW(mPreserveStructureHwnd, BM_GETCHECK, 0, 0) == BST_CHECKED);
+            EnableWindow(mCreateEmptyDirsHwnd, checked && preserveChecked);
+            break;
+        }
+        case IDM_OPT_DELETE_EMPTY_DIR_STRUCTURE: {
+            break;
+        }
+        case IDM_OPT_DELETE_EMPTY_DIR: {
             break;
         }
         case IDM_OPT_PRESERVE_STRUCTURE: {
@@ -389,9 +427,14 @@ void SettingsDialog::ApplySettings(AppSettings& settings) {
     else if (SendMessageW(GetDlgItem(mHWND, IDM_PLACEMENT_LAST), BM_GETCHECK, 0, 0) == BST_CHECKED) settings.placementMode = "LastLocation";
 
     // Options
+    // "Delete Empty Directory" is independent (never grayed out) - direct read
+    settings.deleteEmptyDirectory = (SendMessageW(mDeleteEmptyDirHwnd, BM_GETCHECK, 0, 0) == BST_CHECKED);
     settings.enableDirectoryMoves = (SendMessageW(GetDlgItem(mHWND, IDM_OPT_DIRECTORY_MOVES), BM_GETCHECK, 0, 0) == BST_CHECKED);
-    settings.preserveDirectoryStructure = (SendMessageW(mPreserveStructureHwnd, BM_GETCHECK, 0, 0) == BST_CHECKED);
-    settings.createEmptyDirectories = (SendMessageW(mCreateEmptyDirsHwnd, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    // Indented options with parent/child relationships: a grayed-out (disabled)
+    // option is treated as unchecked.
+    settings.deleteEmptyDirectoryStructure = ReadOptionChecked(mDeleteEmptyDirStructureHwnd);
+    settings.preserveDirectoryStructure = ReadOptionChecked(mPreserveStructureHwnd);
+    settings.createEmptyDirectories = ReadOptionChecked(mCreateEmptyDirsHwnd);
     settings.enableSidecarFiles = (SendMessageW(GetDlgItem(mHWND, IDM_OPT_SIDECAR_FILES), BM_GETCHECK, 0, 0) == BST_CHECKED);
     settings.hideQueuedSourceFiles = (SendMessageW(GetDlgItem(mHWND, IDM_OPT_HIDDEN_SOURCE), BM_GETCHECK, 0, 0) == BST_CHECKED);
 }

@@ -101,6 +101,15 @@ private:
     // Remove source file
     bool RemoveSourceFile(const std::string& sourceFile);
 
+    // Delete the source file's immediate parent directory if it is now empty
+    // (single level; used by the "Delete Empty Directory" option for file drops)
+    void DeleteEmptySourceDirectory(const std::string& sourceFile);
+
+    // Delete the empty directory structure from the source file's parent up to
+    // and including sourceDirRoot (the dropped directory), never above it
+    // (multi level; used by the "Delete empty directory structure" option for directory drops)
+    void DeleteEmptySourceDirectoryStructure(const std::string& sourceFile, const std::string& sourceDirRoot);
+
     // Handle file conflict
     ConflictResolution HandleConflict(const std::string& sourceFile,
                                       const std::string& destFile);

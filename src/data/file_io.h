@@ -38,6 +38,9 @@ bool FileExists(const std::wstring& path);
 // Check if a directory exists.
 bool DirectoryExists(const std::wstring& path);
 
+// Check if a directory exists and contains no files or subdirectories.
+bool IsDirectoryEmpty(const std::wstring& path);
+
 // Get file size in bytes. Returns -1 on error.
 long long GetFileSize(const std::wstring& path);
 

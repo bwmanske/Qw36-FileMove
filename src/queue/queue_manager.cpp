@@ -73,6 +73,8 @@ QueueManager::QueueManager()
     : mEnableSidecarFiles(false)
     , mHideQueuedSourceFiles(false)
     , mEnableDirectoryMoves(false)
+    , mDeleteEmptyDirectory(false)
+    , mDeleteEmptyDirectoryStructure(false)
     , mPreserveDirectoryStructure(false)
     , mCreateEmptyDirectories(false)
     , mCurrentDebugMode(DebugTransferMode::MV)
@@ -99,9 +101,29 @@ void QueueManager::SetEnableDirectoryMoves(bool enabled) {
     mEnableDirectoryMoves = enabled;
 }
 
+void QueueManager::SetDeleteEmptyDirectory(bool enabled) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    mDeleteEmptyDirectory = enabled;
+}
+
+void QueueManager::SetDeleteEmptyDirectoryStructure(bool enabled) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    mDeleteEmptyDirectoryStructure = enabled;
+}
+
 void QueueManager::SetPreserveDirectoryStructure(bool enabled) {
     std::lock_guard<std::mutex> lock(mMutex);
     mPreserveDirectoryStructure = enabled;
+}
+
+bool QueueManager::GetDeleteEmptyDirectory() const {
+    std::lock_guard<std::mutex> lock(mMutex);
+    return mDeleteEmptyDirectory;
+}
+
+bool QueueManager::GetDeleteEmptyDirectoryStructure() const {
+    std::lock_guard<std::mutex> lock(mMutex);
+    return mDeleteEmptyDirectoryStructure;
 }
 
 void QueueManager::SetCreateEmptyDirectories(bool enabled) {
@@ -581,6 +603,7 @@ bool QueueManager::PrepareBatch(const std::string& groupId,
         entry.groupId = groupId;
         entry.sourceFilePath = sf.filePath;
         entry.destinationDirectories = entryDests;
+        entry.sourceDirRoot = sf.sourceDirRoot;
         entry.activeLogFilePath = logPath;
         entry.debugTransferMode = mCurrentDebugMode;
         // Populate empty directories for this source

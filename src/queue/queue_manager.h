@@ -26,6 +26,7 @@ struct PendingMoveEntry {
     std::string sourceFilePath;
     std::vector<std::string> destinationDirectories;
     std::vector<std::string> emptySourceDirectories;
+    std::string sourceDirRoot; // the dropped directory for directory moves; empty for standalone file drops
     std::string activeLogFilePath;
     DebugTransferMode debugTransferMode;
     std::string queuedAt;
@@ -46,8 +47,14 @@ public:
     void SetEnableSidecarFiles(bool enabled);
     void SetHideQueuedSourceFiles(bool enabled);
     void SetEnableDirectoryMoves(bool enabled);
+    void SetDeleteEmptyDirectory(bool enabled);
+    void SetDeleteEmptyDirectoryStructure(bool enabled);
     void SetPreserveDirectoryStructure(bool enabled);
     void SetCreateEmptyDirectories(bool enabled);
+
+    // Getters for worker thread
+    bool GetDeleteEmptyDirectory() const;
+    bool GetDeleteEmptyDirectoryStructure() const;
 
     // Set debug transfer mode from CLI
     void SetDebugMode(DebugTransferMode mode);
@@ -124,6 +131,8 @@ private:
     bool mEnableSidecarFiles;
     bool mHideQueuedSourceFiles;
     bool mEnableDirectoryMoves;
+    bool mDeleteEmptyDirectory;
+    bool mDeleteEmptyDirectoryStructure;
     bool mPreserveDirectoryStructure;
     bool mCreateEmptyDirectories;
 

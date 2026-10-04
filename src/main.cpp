@@ -77,7 +77,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // Open debug console if D was specified
     if (gParsedArgs.debugModeSpecified) {
         OpenDebugConsole();
-        DebugConsoleWriteLine(L"FileMove v1.3.6 - Debug Mode");
+        DebugConsoleWriteLine(L"FileMove v1.3.7 - Debug Mode");
         DebugConsoleWriteLine(std::wstring(L"Built: ") + FILEMOVE_BUILD_DATE_STR);
         DebugConsoleWriteLine(L"Debug transfer mode: " +
             std::wstring(gParsedArgs.debugMode == DebugMode::MV ? L"MV" : L"CP"));
@@ -95,7 +95,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // Open log file
     OpenLogFile(gLogPath);
     LogInfo(L"App started: " + GetTimestamp());
-    LogInfo(L"FileMove v1.3.6");
+    LogInfo(L"FileMove v1.3.7");
     LogInfo(std::wstring(L"Built: ") + FILEMOVE_BUILD_DATE_STR);
     LogInfo(L"Command line options: " + gCommandLine);
     LogInfo(L"LOG file opened: " + GetTimestamp() + L" (" + gLogPath + L")");
@@ -154,6 +154,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     gQueueManager.SetEnableSidecarFiles(gAppData.settings.enableSidecarFiles);
     gQueueManager.SetHideQueuedSourceFiles(gAppData.settings.hideQueuedSourceFiles);
     gQueueManager.SetEnableDirectoryMoves(gAppData.settings.enableDirectoryMoves);
+    gQueueManager.SetDeleteEmptyDirectory(gAppData.settings.deleteEmptyDirectory);
+    gQueueManager.SetDeleteEmptyDirectoryStructure(gAppData.settings.deleteEmptyDirectoryStructure);
     gQueueManager.SetPreserveDirectoryStructure(gAppData.settings.preserveDirectoryStructure);
     gQueueManager.SetCreateEmptyDirectories(gAppData.settings.createEmptyDirectories);
 

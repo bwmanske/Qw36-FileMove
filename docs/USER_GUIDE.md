@@ -1,4 +1,4 @@
-# FileMove v1.3.6 — User Guide
+# FileMove v1.3.7 — User Guide
 
 ## Overview
 
@@ -145,7 +145,9 @@ Accessed via gear button > `Settings`. Contains:
 - Last Location
 
 **Options** (checkboxes):
+- Delete Empty Directory — After a **file** is moved, delete its immediate parent directory if it is now empty (single level; independent, always available)
 - Move directories with subdirectories and files — Recursively move directories and their contents
+- Delete empty directory Structure — After a **directory** is moved, delete the empty directory structure from the bottom up to and including the dropped directory, but never above it (multi level; dependent on directory moves being enabled)
 - Preserve directory structure at destination — Preserve the source directory name and subdirectory structure under each destination (dependent on directory moves being enabled)
 - Create empty directories — Also create empty subdirectories at the destination (dependent on preserve directory structure being enabled)
 - Create .filemove-queued sidecar files — Create hidden `.filemove-queued` marker files for queued sources

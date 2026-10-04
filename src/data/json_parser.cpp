@@ -76,6 +76,8 @@ static json AppDataToJson(const AppData& data) {
     j["SortMode"] = SortModeStringToInt(data.settings.sortMode);
     j["PlacementMode"] = PlacementModeStringToInt(data.settings.placementMode);
     j["EnableDirectoryMoves"] = data.settings.enableDirectoryMoves;
+    j["DeleteEmptyDirectory"] = data.settings.deleteEmptyDirectory;
+    j["DeleteEmptyDirectoryStructure"] = data.settings.deleteEmptyDirectoryStructure;
     j["PreserveDirectoryStructure"] = data.settings.preserveDirectoryStructure;
     j["CreateEmptyDirectories"] = data.settings.createEmptyDirectories;
     j["EnableSidecarFiles"] = data.settings.enableSidecarFiles;
@@ -190,6 +192,10 @@ static void JsonToAppData(const json& j, AppData& data) {
     data.settings.windowLeft = GetIntBoth(j, "windowLeft", "WindowLeft", 0);
     data.settings.windowTop = GetIntBoth(j, "windowTop", "WindowTop", 0);
     data.settings.enableDirectoryMoves = GetBoolBoth(j, "enableDirectoryMoves", "EnableDirectoryMoves", false);
+    data.settings.deleteEmptyDirectory = GetBoolBoth(j, "deleteEmptyDirectory", "DeleteEmptyDirectory", false);
+    // Backward compatibility: fall back to the legacy "DeleteEmptyDirectories" key
+    data.settings.deleteEmptyDirectoryStructure = GetBoolBoth(j, "deleteEmptyDirectoryStructure", "DeleteEmptyDirectoryStructure",
+        GetBoolBoth(j, "deleteEmptyDirectories", "DeleteEmptyDirectories", false));
     data.settings.preserveDirectoryStructure = GetBoolBoth(j, "preserveDirectoryStructure", "PreserveDirectoryStructure", false);
     data.settings.createEmptyDirectories = GetBoolBoth(j, "createEmptyDirectories", "CreateEmptyDirectories", false);
     data.settings.enableSidecarFiles = GetBoolBoth(j, "enableSidecarFiles", "EnableSidecarFiles", false);

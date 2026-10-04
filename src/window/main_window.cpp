@@ -748,6 +748,8 @@ void MainWindow::OnCommand(int id) {
                     gQueueManager.SetEnableSidecarFiles(gAppData.settings.enableSidecarFiles);
                     gQueueManager.SetHideQueuedSourceFiles(gAppData.settings.hideQueuedSourceFiles);
                     gQueueManager.SetEnableDirectoryMoves(gAppData.settings.enableDirectoryMoves);
+                    gQueueManager.SetDeleteEmptyDirectory(gAppData.settings.deleteEmptyDirectory);
+                    gQueueManager.SetDeleteEmptyDirectoryStructure(gAppData.settings.deleteEmptyDirectoryStructure);
                     gQueueManager.SetPreserveDirectoryStructure(gAppData.settings.preserveDirectoryStructure);
                     gQueueManager.SetCreateEmptyDirectories(gAppData.settings.createEmptyDirectories);
 
@@ -780,6 +782,8 @@ void MainWindow::OnCommand(int id) {
                 gQueueManager.SetEnableSidecarFiles(gAppData.settings.enableSidecarFiles);
                 gQueueManager.SetHideQueuedSourceFiles(gAppData.settings.hideQueuedSourceFiles);
                 gQueueManager.SetEnableDirectoryMoves(gAppData.settings.enableDirectoryMoves);
+                gQueueManager.SetDeleteEmptyDirectory(gAppData.settings.deleteEmptyDirectory);
+                gQueueManager.SetDeleteEmptyDirectoryStructure(gAppData.settings.deleteEmptyDirectoryStructure);
                 gQueueManager.SetPreserveDirectoryStructure(gAppData.settings.preserveDirectoryStructure);
                 gQueueManager.SetCreateEmptyDirectories(gAppData.settings.createEmptyDirectories);
 

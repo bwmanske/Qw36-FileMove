@@ -376,6 +376,16 @@ void WorkerThread::ProcessEntry(const PendingMoveEntry& entry) {
                                         StringToWString(entry.sourceFilePath);
                 LogInfo(removeErr);
                 DebugConsoleWriteLine(removeErr);
+            } else if (entry.sourceDirRoot.empty()) {
+                // Standalone file drop: single-level deletion ("Delete Empty Directory")
+                if (gQueueManager.GetDeleteEmptyDirectory()) {
+                    DeleteEmptySourceDirectory(entry.sourceFilePath);
+                }
+            } else {
+                // Directory drop: multi-level structure deletion ("Delete empty directory structure")
+                if (gQueueManager.GetDeleteEmptyDirectoryStructure()) {
+                    DeleteEmptySourceDirectoryStructure(entry.sourceFilePath, entry.sourceDirRoot);
+                }
             }
         }
     } else {
@@ -428,6 +438,77 @@ bool WorkerThread::CopyToDestination(const std::string& sourceFile,
 bool WorkerThread::RemoveSourceFile(const std::string& sourceFile) {
     std::wstring widePath = StringToWString(sourceFile);
     return DeleteFileW(widePath.c_str()) != 0;
+}
+
+void WorkerThread::DeleteEmptySourceDirectory(const std::string& sourceFile) {
+    std::wstring widePath = StringToWString(sourceFile);
+    size_t lastSep = widePath.find_last_of(L"\\/");
+    if (lastSep == std::wstring::npos) return; // no directory component
+    std::wstring parentDir = widePath.substr(0, lastSep);
+    if (parentDir.empty()) return; // file at root with leading separator
+    if (parentDir.size() == 2 && parentDir[1] == L':') return; // drive root (e.g. "C:")
+
+    if (IsDirectoryEmpty(parentDir)) {
+        if (RemoveDirectoryW(parentDir.c_str())) {
+            std::wstring msg = L"Deleted empty source directory: " + parentDir;
+            LogInfo(msg);
+            DebugConsoleWriteLine(msg);
+        } else {
+            std::wstring msg = L"Failed to delete empty source directory: " + parentDir;
+            LogInfo(msg);
+            DebugConsoleWriteLine(msg);
+        }
+    }
+}
+
+void WorkerThread::DeleteEmptySourceDirectoryStructure(const std::string& sourceFile, const std::string& sourceDirRoot) {
+    std::wstring wideFile = StringToWString(sourceFile);
+    std::wstring wideRoot = StringToWString(sourceDirRoot);
+
+    // Normalize root: strip trailing separators (but keep drive root like "C:")
+    while (wideRoot.size() > 3 && (wideRoot.back() == L'\\' || wideRoot.back() == L'/')) {
+        wideRoot.pop_back();
+    }
+
+    // Start at the immediate parent of the source file
+    size_t lastSep = wideFile.find_last_of(L"\\/");
+    if (lastSep == std::wstring::npos) return;
+    std::wstring currentDir = wideFile.substr(0, lastSep);
+    if (currentDir.empty()) return;
+
+    // Walk upward, deleting empty directories, but never above sourceDirRoot
+    while (IsDirectoryEmpty(currentDir)) {
+        // Drive root guard
+        if (currentDir.size() == 2 && currentDir[1] == L':') break;
+
+        // Stop if currentDir is above the dropped directory (sourceDirRoot)
+        bool atOrBelowRoot = false;
+        if (currentDir == wideRoot) {
+            atOrBelowRoot = true;
+        } else if (currentDir.size() > wideRoot.size() &&
+                   currentDir.substr(0, wideRoot.size()) == wideRoot &&
+                   (currentDir[wideRoot.size()] == L'\\' || currentDir[wideRoot.size()] == L'/')) {
+            atOrBelowRoot = true;
+        }
+        if (!atOrBelowRoot) break;
+
+        if (RemoveDirectoryW(currentDir.c_str())) {
+            std::wstring msg = L"Deleted empty source directory (structure): " + currentDir;
+            LogInfo(msg);
+            DebugConsoleWriteLine(msg);
+        } else {
+            std::wstring msg = L"Failed to delete empty source directory (structure): " + currentDir;
+            LogInfo(msg);
+            DebugConsoleWriteLine(msg);
+            break;
+        }
+
+        // Move up to the parent
+        size_t parentSep = currentDir.find_last_of(L"\\/");
+        if (parentSep == std::wstring::npos) break;
+        currentDir = currentDir.substr(0, parentSep);
+        if (currentDir.empty()) break;
+    }
 }
 
 ConflictResolution WorkerThread::HandleConflict(const std::string& sourceFile,

@@ -25,6 +25,8 @@ struct AppSettings {
     int windowLeft = 0;
     int windowTop = 0;
     bool enableDirectoryMoves = false;
+    bool deleteEmptyDirectory = false;
+    bool deleteEmptyDirectoryStructure = false;
     bool preserveDirectoryStructure = false;
     bool createEmptyDirectories = false;
     bool enableSidecarFiles = false;

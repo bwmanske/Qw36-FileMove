@@ -7,13 +7,13 @@
 `CMakeLists.txt` defines the project with the following settings:
 
 - **Minimum CMake version**: 3.10
-- **Project version**: 1.3.6
+- **Project version**: 1.3.7
 - **C++ standard**: C++17 (required)
 - **Executable type**: WIN32 subsystem (no console on normal launch)
 
 ```cmake
 cmake_minimum_required(VERSION 3.10)
-project(FileMove VERSION 1.3.6 LANGUAGES CXX)
+project(FileMove VERSION 1.3.7 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 ```
@@ -73,7 +73,7 @@ add_executable(test_harness
 | `UNICODE` / `_UNICODE` | Wide-character API throughout |
 | `WIN32_LEAN_AND_MEAN` | Exclude rarely-used Windows headers |
 | `NOMINMAX` | Prevent min/max macro conflicts |
-| `FILEMOVE_VERSION` | Injected project version string (`"1.3.6"`) |
+| `FILEMOVE_VERSION` | Injected project version string (`"1.3.7"`) |
 | `FILEMOVE_BUILD_DATE_STR` | Generated at build time via PowerShell custom target into `GeneratedBuildConfig.h` |
 
 ### Embedded Resources
@@ -177,7 +177,7 @@ FileMove/
 │   └── nlohmann/
 │       └── json.hpp                  # nlohmann/json v3.11.3 (header-only)
 ├── tests/
-│       └── test_harness.cpp              # (Phase 7) Unit tests (421 tests)
+│       └── test_harness.cpp              # (Phase 7) Unit tests (470 tests)
 ├── assets/
 │   ├── icons/
 │   │   ├── FileMove-icon.ico         # Application icon (embedded at build)
@@ -339,6 +339,7 @@ File and path utilities for the application.
 - `FileExists(path)` / `DirectoryExists(path)` — Existence checks
 - `GetFileSize(path)` — Returns size in bytes (-1 on error)
 - `ListJsonFiles(directory)` — Returns all `.json` files in directory
+- `IsDirectoryEmpty(path)` — `FindFirstFileW`-based check; true only if the directory exists and contains no entries (used by "Delete Empty Directory" and "Delete empty directory Structure")
 
 ### `src/data/json_parser.h/cpp`
 
@@ -366,6 +367,8 @@ struct AppSettings {
     int windowLeft = 0;
     int windowTop = 0;
     bool enableDirectoryMoves = false;
+    bool deleteEmptyDirectory = false;
+    bool deleteEmptyDirectoryStructure = false;
     bool preserveDirectoryStructure = false;
     bool createEmptyDirectories = false;
     bool enableSidecarFiles = false;
@@ -445,6 +448,12 @@ struct PendingMoveEntry {
 - When `hideQueuedSourceFiles` is true, marks source files as hidden when queued
 - `RestoreSourceVisibility()` restores visible state on completion/cancellation
 
+**Directory options:**
+- `SetEnableDirectoryMoves()` / `GetEnableDirectoryMoves()` — gate for directory inputs in `PrepareBatch`
+- `SetDeleteEmptyDirectory()` / `GetDeleteEmptyDirectory()` — when true, the worker deletes the immediate parent of a moved **file** if it is now empty (single level; file drops)
+- `SetDeleteEmptyDirectoryStructure()` / `GetDeleteEmptyDirectoryStructure()` — when true, the worker deletes the empty directory structure up to and including the dropped directory for **directory** drops (multi level)
+- `SetPreserveDirectoryStructure()` / `SetCreateEmptyDirectories()` — structure/empty-dir options consumed during batch preparation
+
 **Thread safety:**
 - All public methods acquire `mMutex` before accessing `mEntries`
 - Worker thread will access queue through thread-safe methods
@@ -490,9 +499,12 @@ Background thread that processes queued file moves with pause/resume, error hand
    - On success: increments processed count, logs success
    - On failure: removes partial file, pauses for error handling
 2. After all destinations:
-   - In MV mode: removes source file only if all destinations succeeded
-   - In CP mode: keeps source file, logs that it was preserved
-   - If any destination failed/skipped: keeps source file in place
+    - In MV mode: removes source file only if all destinations succeeded
+    - In CP mode: keeps source file, logs that it was preserved
+    - If any destination failed/skipped: keeps source file in place
+    - After a successful `RemoveSourceFile`, directory cleanup depends on the drop type (tracked via `PendingMoveEntry::sourceDirRoot`):
+      - **File drop** (`sourceDirRoot` empty): if `GetDeleteEmptyDirectory()` is true, calls `DeleteEmptySourceDirectory()` — removes the immediate parent if now empty (single level, never a drive root).
+      - **Directory drop** (`sourceDirRoot` set): if `GetDeleteEmptyDirectoryStructure()` is true, calls `DeleteEmptySourceDirectoryStructure()` — walks upward from the immediate parent, removing each empty directory, stopping at the first non-empty directory or when reaching above `sourceDirRoot` (the dropped directory itself may be removed, but never its parent).
 
 **Conflict resolution:**
 - `Replace` — Overwrites existing destination file
@@ -655,7 +667,7 @@ Modal About window showing build information.
 **Layout:**
 - Centered 128x128 image from `assets/images/about-image.png`
 - "Build Information" header
-- "Version: 1.3.6" (left) and "Built On: DATE TIME" (right) on same line
+- "Version: 1.3.7" (left) and "Built On: DATE TIME" (right) on same line
 - "Command Line:" followed by current run's arguments
 - Description text
 
@@ -694,7 +706,7 @@ Modal Settings window for sort order, placement, and options.
 - **Sort Order:** 6 radio buttons in 2 columns (MRU, LRU, AZ, ZA, AF, AL)
 - **Placement:** 5 radio buttons (UL, UR, LL, LR, Last Location)
 - **Startup Preview:** Read-only display of saved size and position
-- **Options:** 5 checkboxes (Directory Moves, Preserve Directory Structure, Create Empty Directories, Sidecar Files, Hidden Source)
+- **Options:** 7 checkboxes (Delete Empty Directory, Directory Moves, Delete Empty Directory Structure, Preserve Directory Structure, Create Empty Directories, Sidecar Files, Hidden Source)
 - **Bottom buttons:** "OK" and "Cancel"
 
 **Behavior:**
@@ -703,10 +715,19 @@ Modal Settings window for sort order, placement, and options.
 - "Cancel" discards changes
 - After OK, main window refreshes group list with new sort mode and updates queue manager with new options
 
+**Options hierarchy (parent/child enable-disable):**
+- `Delete Empty Directory` is independent (not indented, positioned above `Move directories`); it is never grayed out.
+- `Move directories` is the parent of `Delete empty directory Structure` and `Preserve directory structure`; `Preserve directory structure` is the parent of `Create empty directories`. `Sidecar files` and `Hidden source` are independent.
+- The two directory-cleanup options are independent functions: `Delete Empty Directory` applies to file drops (single level); `Delete empty directory Structure` applies to directory drops (multi level, up to the dropped directory).
+- Rule #1: when a parent is unchecked, its direct children are disabled (grayed); a grayed-out child also grays all of its descendants.
+- Rule #2: when a parent is checked, its direct children are re-enabled with their prior checked state restored, and Rule #1 is re-applied to any newly-enabled child that is itself a parent.
+- Rule #3: a grayed-out (disabled) indented option is treated as unchecked by the app. `ApplySettings()` reads the three indented options via `ReadOptionChecked()`, which returns false when the control is disabled — so on OK a grayed-out option is saved as unchecked regardless of its visual state.
+- Checking a child never changes the parent's state.
+
 **Button IDs:**
 - Sort: `IDM_SORT_MRU` (3001) through `IDM_SORT_AL` (3006)
 - Placement: `IDM_PLACEMENT_UL` (3010) through `IDM_PLACEMENT_LAST` (3014)
-- Options: `IDM_OPT_DIRECTORY_MOVES` (3020) through `IDM_OPT_HIDDEN_SOURCE` (3024)
+- Options: `IDM_OPT_DIRECTORY_MOVES` (3020) through `IDM_OPT_HIDDEN_SOURCE` (3025)
 
 ### `src/window/dialogs/group_editor.h/cpp`
 
@@ -1148,9 +1169,11 @@ All assets are embedded into the executable at build time via a Windows resource
 **Run:** `build/Release/test_harness.exe`
 **CMake:** `ctest --config Release`
 
-### Test Coverage (421 tests)
+### Test Coverage (470 tests)
 
-**cmdline_parser (45 tests):**
+Counts are runtime assertion totals (some assertions run inside loops). Modules listed in `main()` call order.
+
+**cmdline_parser (89 tests):**
 - Empty command line, valid/invalid `/D` values (MV, CP, case insensitive)
 - `/I` with no extension (adds .json), .json extension, invalid extension
 - `/O` with no extension (adds .log), .log extension, invalid extension
@@ -1161,7 +1184,7 @@ All assets are embedded into the executable at build time via a Windows resource
 - `PlacementModeToString`/`FromString` round-trips
 - `GetCommandLineHelp` returns non-empty
 
-**file_io (25 tests):**
+**file_io (26 tests):**
 - `GetBaseName`, `GetDirectory`, `GetFileName`, `ReplaceExtension`
 - `ResolveJsonPath` with/without directory, with/without extension
 - `ResolveLogPath` derived from JSON, explicit path
@@ -1170,7 +1193,7 @@ All assets are embedded into the executable at build time via a Windows resource
 - `EnumerateDirectoryFiles` recursive enumeration
 - `ListJsonFiles` filtering
 
-**json_parser (30 tests):**
+**json_parser (112 tests):**
 - `CreateDefaultJson` creates valid default file
 - Save/load round-trip with all settings and groups
 - Empty file (0 bytes) loads as default
@@ -1180,7 +1203,12 @@ All assets are embedded into the executable at build time via a Windows resource
 - `GetIsoTimestamp` produces valid ISO 8601 format
 - Multiple groups save/load
 
-**queue_manager (89 tests):**
+**logging_buffer (34 tests):**
+- Buffered log entries held before the log file is opened
+- Flush on log file open, switch, and close
+- Buffer discarded on switch failure
+
+**queue_manager (27 tests):**
 - Empty queue state
 - `PrepareBatch` with no files, no destinations, non-existent source/dest
 - Valid batch preparation, release, entry retrieval
@@ -1191,34 +1219,51 @@ All assets are embedded into the executable at build time via a Windows resource
 - Directory move disabled (rejects directories)
 - Directory move enabled (expands directories recursively)
 
-**settings_persistence (20 tests):**
-- `preserveDirectoryStructure` and `createEmptyDirectories` save/load round-trip
-- Default values for new and empty JSON files
-- Legacy JSON without new settings keys loads with defaults
-
-**copy_vs_move_mode (15 tests):**
-- CP and MV mode entry creation and source file handling
-- Mid-session mode changes reflected in new queue entries
-
-**preserve_directory_structure (40 tests):**
+**preserve_directory_structure (37 tests):**
 - Destination path prefixing with structure enabled/disabled
 - Nested directory structure preservation
 - Multiple sources and destinations with structure
 
-**create_empty_directories (35 tests):**
+**create_empty_directories (34 tests):**
 - Leaf empty directory detection and creation
 - Nested empty directory chains
 - Mixed content directories
 - Disabled mode skips empty directory creation
 
-**find_empty_directories (15 tests):**
+**copy_vs_move_mode (11 tests):**
+- CP and MV mode entry creation and source file handling
+- Mid-session mode changes reflected in new queue entries
+
+**settings_json_roundtrip (19 tests):**
+- `preserveDirectoryStructure` and `createEmptyDirectories` save/load round-trip
+- Default values for new and empty JSON files
+- Legacy JSON without new settings keys loads with defaults
+
+**find_empty_directories (13 tests):**
 - Deep nesting, empty parent/child directories
 - Multiple separate empty directories in a tree
 - Always recurses into subdirectories before checking emptiness
 
-**source_dest_conflict_structure (8 tests):**
+**source_dest_conflict_structure (4 tests):**
 - File already at structured destination path
 - No-conflict cases with structure preservation
+
+**replace_all_conflict (12 tests):**
+- `ReplaceAll` sticky flag scoped to the current group
+- Flag resets when a new batch starts
+- Internally converts to `Replace` after setting the sticky flag
+
+**nested_dest_dir_creation (3 tests):**
+- Nested destination directories created during transfer
+
+**delete_empty_directory (26 tests):**
+- `IsDirectoryEmpty` helper (empty dir, dir with file, dir with subdir, missing dir)
+- JSON round-trip: `deleteEmptyDirectory` true/false, default false
+- Worker pipeline (file drops): option enabled deletes emptied source dir; option disabled leaves it; non-empty source dir is not deleted
+
+**delete_empty_directory_structure (23 tests):**
+- JSON round-trip: `deleteEmptyDirectoryStructure` true/false, default false, legacy `DeleteEmptyDirectories` key maps to structure (backward compat)
+- Worker pipeline (directory drops): option enabled deletes the empty structure (subdirs + dropped dir) but never the parent above the dropped dir; option disabled leaves the structure in place
 
 ### Bugs Fixed During Testing
 

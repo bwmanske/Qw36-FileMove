@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Build script for FileMove v1.3.6
+    Build script for FileMove v1.3.7
 
 .DESCRIPTION
     Configures and builds the FileMove project using CMake.

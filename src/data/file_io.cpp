@@ -126,6 +126,31 @@ bool DirectoryExists(const std::wstring& path) {
     return (st.st_mode & _S_IFDIR) != 0;
 }
 
+bool IsDirectoryEmpty(const std::wstring& path) {
+    if (!DirectoryExists(path)) return false;
+
+    std::wstring searchPattern = path;
+    if (!searchPattern.empty() && searchPattern.back() != L'\\' && searchPattern.back() != L'/') {
+        searchPattern += L'\\';
+    }
+    searchPattern += L"*";
+
+    WIN32_FIND_DATAW findData;
+    HANDLE hFind = FindFirstFileW(searchPattern.c_str(), &findData);
+    if (hFind == INVALID_HANDLE_VALUE) return false;
+
+    bool empty = true;
+    do {
+        std::wstring entryName = findData.cFileName;
+        if (entryName == L"." || entryName == L"..") continue;
+        empty = false;
+        break;
+    } while (FindNextFileW(hFind, &findData) != 0);
+
+    FindClose(hFind);
+    return empty;
+}
+
 long long GetFileSize(const std::wstring& path) {
     struct _stat64 st;
     if (_wstat64(path.c_str(), &st) != 0) return -1;

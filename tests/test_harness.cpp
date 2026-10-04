@@ -2794,10 +2794,351 @@ static void TestNestedDestDirCreation() {
     std::cout << "  nested_dest_dir_creation tests done." << std::endl;
 }
 
+// ==================== Delete Empty Directory / Delete empty directory Structure ====================
+
+static void TestDeleteEmptyDirectory() {
+    std::cout << "Testing delete_empty_directory..." << std::endl;
+
+    std::wstring testDir = L"C:\\Users\\brad\\AppData\\Local\\Temp\\opencode\\filemove_test";
+
+    // --- IsDirectoryEmpty helper ---
+    {
+        EnsureCleanTestDir(testDir);
+        std::wstring emptyDir = testDir + L"\\emptydir";
+        EnsureDirectoryExists(emptyDir);
+        ASSERT_TRUE(IsDirectoryEmpty(emptyDir));
+
+        // Add a file -> no longer empty
+        CreateTempFile(emptyDir + L"\\f.txt", L"x");
+        ASSERT_FALSE(IsDirectoryEmpty(emptyDir));
+
+        // Add a subdirectory -> still not empty
+        EnsureDirectoryExists(emptyDir + L"\\sub");
+        ASSERT_FALSE(IsDirectoryEmpty(emptyDir));
+
+        // Non-existent dir -> false
+        ASSERT_FALSE(IsDirectoryEmpty(testDir + L"\\doesnotexist"));
+
+        RemoveDirectoryTreeRecursive(testDir);
+    }
+
+    // --- JSON round-trip: true ---
+    {
+        EnsureCleanTestDir(testDir);
+        AppData data;
+        data.settings.deleteEmptyDirectory = true;
+        std::wstring path = testDir + L"\\del_dir_true.json";
+        ASSERT_TRUE(SaveAppData(path, data));
+        AppData loaded;
+        ASSERT_TRUE(LoadAppData(path, loaded));
+        ASSERT_TRUE(loaded.settings.deleteEmptyDirectory);
+        RemoveFile(path);
+        RemoveDirectoryTreeRecursive(testDir);
+    }
+
+    // --- JSON round-trip: false ---
+    {
+        EnsureCleanTestDir(testDir);
+        AppData data;
+        data.settings.deleteEmptyDirectory = false;
+        std::wstring path = testDir + L"\\del_dir_false.json";
+        ASSERT_TRUE(SaveAppData(path, data));
+        AppData loaded;
+        ASSERT_TRUE(LoadAppData(path, loaded));
+        ASSERT_FALSE(loaded.settings.deleteEmptyDirectory);
+        RemoveFile(path);
+        RemoveDirectoryTreeRecursive(testDir);
+    }
+
+    // --- Default false on new JSON ---
+    {
+        EnsureCleanTestDir(testDir);
+        std::wstring path = testDir + L"\\del_dir_default.json";
+        ASSERT_TRUE(CreateDefaultJson(path));
+        AppData loaded;
+        ASSERT_TRUE(LoadAppData(path, loaded));
+        ASSERT_FALSE(loaded.settings.deleteEmptyDirectory);
+        RemoveFile(path);
+        RemoveDirectoryTreeRecursive(testDir);
+    }
+
+    // --- Worker pipeline: file drop, deletes empty source dir when option enabled ---
+    {
+        EnsureCleanTestDir(testDir);
+        gQueueManager.SetEnableDirectoryMoves(false);
+        gQueueManager.SetDeleteEmptyDirectory(true);
+
+        std::wstring srcDir = testDir + L"\\srcdir";
+        EnsureDirectoryExists(srcDir);
+        std::wstring srcFile = srcDir + L"\\file.txt";
+        CreateTempFile(srcFile, L"content");
+
+        std::wstring destDir = testDir + L"\\dest";
+        EnsureDirectoryExists(destDir);
+
+        std::wstring error;
+        bool ok = gQueueManager.PrepareBatch("grp-del-dir-1", {WStringToString(srcFile)}, {WStringToString(destDir)}, error);
+        ASSERT_TRUE(ok);
+        gQueueManager.ReleasePreparedEntries();
+        gWorkerThread.Start();
+
+        int waitCount = 0;
+        while (!gQueueManager.IsEmpty() && waitCount < 100) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            waitCount++;
+        }
+        gWorkerThread.Stop();
+        gWorkerThread.WaitForCompletion();
+
+        ASSERT_TRUE(FileExists(destDir + L"\\file.txt"));
+        ASSERT_FALSE(FileExists(srcFile));
+        ASSERT_FALSE(DirectoryExists(srcDir)); // deleted (was empty)
+
+        RemoveDirectoryTreeRecursive(testDir);
+        gQueueManager.SetDeleteEmptyDirectory(false);
+    }
+
+    // --- Worker pipeline: file drop, keeps non-empty source dir ---
+    {
+        EnsureCleanTestDir(testDir);
+        gQueueManager.SetEnableDirectoryMoves(false);
+        gQueueManager.SetDeleteEmptyDirectory(true);
+
+        std::wstring srcDir = testDir + L"\\srcdir";
+        EnsureDirectoryExists(srcDir);
+        std::wstring srcFile = srcDir + L"\\file.txt";
+        CreateTempFile(srcFile, L"content");
+        std::wstring keepFile = srcDir + L"\\keep.txt";
+        CreateTempFile(keepFile, L"keep");
+
+        std::wstring destDir = testDir + L"\\dest";
+        EnsureDirectoryExists(destDir);
+
+        std::wstring error;
+        bool ok = gQueueManager.PrepareBatch("grp-del-dir-2", {WStringToString(srcFile)}, {WStringToString(destDir)}, error);
+        ASSERT_TRUE(ok);
+        gQueueManager.ReleasePreparedEntries();
+        gWorkerThread.Start();
+
+        int waitCount = 0;
+        while (!gQueueManager.IsEmpty() && waitCount < 100) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            waitCount++;
+        }
+        gWorkerThread.Stop();
+        gWorkerThread.WaitForCompletion();
+
+        ASSERT_TRUE(FileExists(destDir + L"\\file.txt"));
+        ASSERT_FALSE(FileExists(srcFile));
+        ASSERT_TRUE(DirectoryExists(srcDir)); // kept (still has keep.txt)
+        ASSERT_TRUE(FileExists(keepFile));
+
+        RemoveDirectoryTreeRecursive(testDir);
+        gQueueManager.SetDeleteEmptyDirectory(false);
+    }
+
+    // --- Worker pipeline: file drop, keeps empty source dir when option disabled ---
+    {
+        EnsureCleanTestDir(testDir);
+        gQueueManager.SetEnableDirectoryMoves(false);
+        gQueueManager.SetDeleteEmptyDirectory(false);
+
+        std::wstring srcDir = testDir + L"\\srcdir";
+        EnsureDirectoryExists(srcDir);
+        std::wstring srcFile = srcDir + L"\\file.txt";
+        CreateTempFile(srcFile, L"content");
+
+        std::wstring destDir = testDir + L"\\dest";
+        EnsureDirectoryExists(destDir);
+
+        std::wstring error;
+        bool ok = gQueueManager.PrepareBatch("grp-del-dir-3", {WStringToString(srcFile)}, {WStringToString(destDir)}, error);
+        ASSERT_TRUE(ok);
+        gQueueManager.ReleasePreparedEntries();
+        gWorkerThread.Start();
+
+        int waitCount = 0;
+        while (!gQueueManager.IsEmpty() && waitCount < 100) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            waitCount++;
+        }
+        gWorkerThread.Stop();
+        gWorkerThread.WaitForCompletion();
+
+        ASSERT_TRUE(FileExists(destDir + L"\\file.txt"));
+        ASSERT_FALSE(FileExists(srcFile));
+        ASSERT_TRUE(DirectoryExists(srcDir)); // kept (option disabled)
+
+        RemoveDirectoryTreeRecursive(testDir);
+    }
+
+    std::cout << "  delete_empty_directory tests done." << std::endl;
+}
+
+static void TestDeleteEmptyDirectoryStructure() {
+    std::cout << "Testing delete_empty_directory_structure..." << std::endl;
+
+    std::wstring testDir = L"C:\\Users\\brad\\AppData\\Local\\Temp\\opencode\\filemove_test";
+
+    // --- JSON round-trip: true ---
+    {
+        EnsureCleanTestDir(testDir);
+        AppData data;
+        data.settings.deleteEmptyDirectoryStructure = true;
+        std::wstring path = testDir + L"\\del_struct_true.json";
+        ASSERT_TRUE(SaveAppData(path, data));
+        AppData loaded;
+        ASSERT_TRUE(LoadAppData(path, loaded));
+        ASSERT_TRUE(loaded.settings.deleteEmptyDirectoryStructure);
+        RemoveFile(path);
+        RemoveDirectoryTreeRecursive(testDir);
+    }
+
+    // --- JSON round-trip: false ---
+    {
+        EnsureCleanTestDir(testDir);
+        AppData data;
+        data.settings.deleteEmptyDirectoryStructure = false;
+        std::wstring path = testDir + L"\\del_struct_false.json";
+        ASSERT_TRUE(SaveAppData(path, data));
+        AppData loaded;
+        ASSERT_TRUE(LoadAppData(path, loaded));
+        ASSERT_FALSE(loaded.settings.deleteEmptyDirectoryStructure);
+        RemoveFile(path);
+        RemoveDirectoryTreeRecursive(testDir);
+    }
+
+    // --- Default false on new JSON ---
+    {
+        EnsureCleanTestDir(testDir);
+        std::wstring path = testDir + L"\\del_struct_default.json";
+        ASSERT_TRUE(CreateDefaultJson(path));
+        AppData loaded;
+        ASSERT_TRUE(LoadAppData(path, loaded));
+        ASSERT_FALSE(loaded.settings.deleteEmptyDirectoryStructure);
+        RemoveFile(path);
+        RemoveDirectoryTreeRecursive(testDir);
+    }
+
+    // --- Legacy JSON: old "DeleteEmptyDirectories" key maps to structure (backward compat) ---
+    {
+        EnsureCleanTestDir(testDir);
+        std::wstring path = testDir + L"\\del_struct_legacy.json";
+        std::string legacyJson = R"({
+            "version": 1,
+            "lastSelectedGroupId": "",
+            "sortMode": "MostRecentlyUsed",
+            "placementMode": "UpperLeft",
+            "windowWidth": 320,
+            "windowHeight": 500,
+            "windowLeft": 0,
+            "windowTop": 0,
+            "DeleteEmptyDirectories": true,
+            "groups": []
+        })";
+        CreateTempFileNarrow(path, legacyJson);
+        AppData loaded;
+        ASSERT_TRUE(LoadAppData(path, loaded));
+        ASSERT_TRUE(loaded.settings.deleteEmptyDirectoryStructure); // backward compat
+        RemoveFile(path);
+        RemoveDirectoryTreeRecursive(testDir);
+    }
+
+    // --- Worker pipeline: directory drop, multi-level structure deletion ---
+    {
+        EnsureCleanTestDir(testDir);
+        gQueueManager.SetEnableDirectoryMoves(true);
+        gQueueManager.SetDeleteEmptyDirectoryStructure(true);
+
+        // Create: srcdir\Show 1\Season 1\file1.txt, srcdir\Show 1\Season 2\file2.txt
+        std::wstring srcRoot = testDir + L"\\srcdir";
+        std::wstring showDir = srcRoot + L"\\Show 1";
+        std::wstring season1 = showDir + L"\\Season 1";
+        std::wstring season2 = showDir + L"\\Season 2";
+        EnsureDirectoryExists(season1);
+        EnsureDirectoryExists(season2);
+        CreateTempFile(season1 + L"\\file1.txt", L"content1");
+        CreateTempFile(season2 + L"\\file2.txt", L"content2");
+
+        std::wstring destDir = testDir + L"\\dest";
+        EnsureDirectoryExists(destDir);
+
+        std::wstring error;
+        // Drop the directory "Show 1"
+        bool ok = gQueueManager.PrepareBatch("grp-del-struct-1", {WStringToString(showDir)}, {WStringToString(destDir)}, error);
+        ASSERT_TRUE(ok);
+        gQueueManager.ReleasePreparedEntries();
+        gWorkerThread.Start();
+
+        int waitCount = 0;
+        while (!gQueueManager.IsEmpty() && waitCount < 100) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            waitCount++;
+        }
+        gWorkerThread.Stop();
+        gWorkerThread.WaitForCompletion();
+
+        // Files moved to dest
+        ASSERT_TRUE(FileExists(destDir + L"\\file1.txt"));
+        ASSERT_TRUE(FileExists(destDir + L"\\file2.txt"));
+        // Structure deleted: Season 1, Season 2, Show 1
+        ASSERT_FALSE(DirectoryExists(season1));
+        ASSERT_FALSE(DirectoryExists(season2));
+        ASSERT_FALSE(DirectoryExists(showDir));
+        // srcdir NOT deleted (above the dropped directory)
+        ASSERT_TRUE(DirectoryExists(srcRoot));
+
+        RemoveDirectoryTreeRecursive(testDir);
+        gQueueManager.SetDeleteEmptyDirectoryStructure(false);
+        gQueueManager.SetEnableDirectoryMoves(false);
+    }
+
+    // --- Worker pipeline: directory drop, keeps structure when option disabled ---
+    {
+        EnsureCleanTestDir(testDir);
+        gQueueManager.SetEnableDirectoryMoves(true);
+        gQueueManager.SetDeleteEmptyDirectoryStructure(false);
+
+        std::wstring srcRoot = testDir + L"\\srcdir";
+        std::wstring showDir = srcRoot + L"\\Show 1";
+        std::wstring season1 = showDir + L"\\Season 1";
+        EnsureDirectoryExists(season1);
+        CreateTempFile(season1 + L"\\file1.txt", L"content1");
+
+        std::wstring destDir = testDir + L"\\dest";
+        EnsureDirectoryExists(destDir);
+
+        std::wstring error;
+        bool ok = gQueueManager.PrepareBatch("grp-del-struct-2", {WStringToString(showDir)}, {WStringToString(destDir)}, error);
+        ASSERT_TRUE(ok);
+        gQueueManager.ReleasePreparedEntries();
+        gWorkerThread.Start();
+
+        int waitCount = 0;
+        while (!gQueueManager.IsEmpty() && waitCount < 100) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            waitCount++;
+        }
+        gWorkerThread.Stop();
+        gWorkerThread.WaitForCompletion();
+
+        ASSERT_TRUE(FileExists(destDir + L"\\file1.txt"));
+        // Structure kept (option disabled)
+        ASSERT_TRUE(DirectoryExists(season1));
+        ASSERT_TRUE(DirectoryExists(showDir));
+        ASSERT_TRUE(DirectoryExists(srcRoot));
+
+        RemoveDirectoryTreeRecursive(testDir);
+        gQueueManager.SetEnableDirectoryMoves(false);
+    }
+
+    std::cout << "  delete_empty_directory_structure tests done." << std::endl;
+}
+
 // ==================== Main ====================
 
 int main() {
-    std::cout << "FileMove v1.3.6 - Unit Tests" << std::endl;
+    std::cout << "FileMove v1.3.7 - Unit Tests" << std::endl;
     std::cout << "==============================" << std::endl;
 
     TestCmdlineParser();
@@ -2813,6 +3154,8 @@ int main() {
     TestSourceDestConflictStructure();
     TestReplaceAllConflict();
     TestNestedDestDirCreation();
+    TestDeleteEmptyDirectory();
+    TestDeleteEmptyDirectoryStructure();
 
     std::cout << "==============================" << std::endl;
     std::cout << "Results: " << gPassed << " passed, " << gFailed << " failed" << std::endl;

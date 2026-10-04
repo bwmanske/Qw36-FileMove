@@ -1,8 +1,8 @@
-# FileMove v1.3.6 — Testing Guide
+# FileMove v1.3.7 — Testing Guide
 
 ## Unit Tests
 
-The test harness (`tests/test_harness.cpp`) provides 421 unit tests across ten modules. Tests run as a console application with no external dependencies.
+The test harness (`tests/test_harness.cpp`) provides 470 passing assertions across fifteen modules. Tests run as a console application with no external dependencies.
 
 ### Running Tests
 
@@ -28,125 +28,37 @@ A simple inline test framework is used. Each test:
 
 Test output format:
 ```
-FileMove v1.3.6 - Unit Tests
+FileMove v1.3.7 - Unit Tests
 ==============================
 Testing cmdline_parser...
   cmdline_parser tests done.
 ...
 ==============================
-Results: 421 passed, 0 failed
+Results: 470 passed, 0 failed
 ```
 
-### Module: cmdline_parser (45 tests)
+### Module Breakdown
 
-| Category | Tests |
-|---|---|
-| Empty command line | 1 |
-| `/D` option (MV, CP, case insensitive, invalid) | 8 |
-| `/I` option (no extension, .json, invalid extension) | 6 |
-| `/O` option (no extension, .log, invalid extension) | 6 |
-| `/S` option (all sort modes, invalid) | 8 |
-| `/P` option (all placement modes, invalid) | 8 |
-| Multiple options, unknown options, non-prefixed tokens | 4 |
-| `SortModeToString`/`FromString` round-trips | 6 |
-| `PlacementModeToString`/`FromString` round-trips | 6 |
-| `GetCommandLineHelp` non-empty | 1 |
+Counts are runtime assertion totals (some assertions run inside loops). Modules are listed in `main()` call order.
 
-### Module: file_io (25 tests)
-
-| Category | Tests |
-|---|---|
-| `GetBaseName`, `GetDirectory`, `GetFileName`, `ReplaceExtension` | 8 |
-| `ResolveJsonPath` with/without directory and extension | 6 |
-| `ResolveLogPath` derived from JSON, explicit path | 4 |
-| `FileExists`, `DirectoryExists`, `GetFileSize` | 4 |
-| `EnsureDirectoryExists` recursive creation | 2 |
-| `EnumerateDirectoryFiles` recursive enumeration | 1 |
-
-### Module: json_parser (30 tests)
-
-| Category | Tests |
-|---|---|
-| `CreateDefaultJson` creates valid default file | 3 |
-| Save/load round-trip with all settings and groups | 8 |
-| Empty file (0 bytes) loads as default | 3 |
-| Malformed JSON returns false | 3 |
-| Legacy `DestinationPath` migration | 4 |
-| `GenerateGroupId` uniqueness and GUID format (32-char hex) | 5 |
-| `GetIsoTimestamp` ISO 8601 format validation | 3 |
-| Multiple groups save/load | 1 |
-
-### Module: queue_manager (89 tests)
-
-| Category | Tests |
-|---|---|
-| Empty queue state | 3 |
-| `PrepareBatch` validation (no files, no destinations, non-existent paths) | 12 |
-| Valid batch preparation, release, entry retrieval | 15 |
-| Deduplication by source path | 10 |
-| `CancelPreparedEntries`, `CancelAllEntries` | 10 |
-| Sidecar file creation and cleanup | 12 |
-| Multiple files in batch, multiple destinations | 10 |
-| Directory move disabled (rejects directories) | 8 |
-| Directory move enabled (expands recursively) | 9 |
-
-### Module: preserve_directory_structure (40 tests)
-
-| Category | Tests |
-|---|---|
-| Single file, structure disabled — dest path unchanged | 3 |
-| Single file, structure enabled — no dir root, dest unchanged | 3 |
-| Directory source, structure enabled — dest gets srcDirBase prefix | 5 |
-| Nested subdirectory, structure enabled — full path preserved | 5 |
-| Multiple files from same dir root — all get same prefix | 5 |
-| Structure enabled + multiple destinations — each gets prefix | 5 |
-| Multiple directory sources — each gets own basename prefix | 5 |
-| `FindEmptyDirsDirect` standalone verification | 9 |
-
-### Module: create_empty_directories (35 tests)
-
-| Category | Tests |
-|---|---|
-| Leaf empty directory detected | 5 |
-| Leaf empty directory, structure disabled — not collected | 3 |
-| Nested empty directories — only leaf-most recorded | 5 |
-| Empty dir alongside files — recorded | 5 |
-| Non-empty dir not recorded | 5 |
-| CreateEmptyDirectories disabled — no empty dirs collected | 5 |
-| Full directory tree with mixed content | 5 |
-
-### Module: copy_vs_move_mode (15 tests)
-
-| Category | Tests |
-|---|---|
-| CP mode entry creation | 3 |
-| MV mode entry creation | 3 |
-| Mode change mid-session — entries retain set mode | 9 |
-
-### Module: settings_json_roundtrip (20 tests)
-
-| Category | Tests |
-|---|---|
-| `preserveDirectoryStructure` true/false round-trip | 4 |
-| `createEmptyDirectories` true/false round-trip | 4 |
-| Both true round-trip | 4 |
-| Both false by default on new JSON | 4 |
-| Legacy JSON without fields — defaults to false | 4 |
-
-### Module: find_empty_directories (15 tests)
-
-| Category | Tests |
-|---|---|
-| Deeply nested empty chain — only leaf-most recorded | 5 |
-| Empty dir with empty subdir — only leaf recorded | 5 |
-| Multiple separate empty directories | 5 |
-
-### Module: source_dest_conflict_structure (8 tests)
-
-| Category | Tests |
-|---|---|
-| File already at structured dest path — skipped | 3 |
-| File not at structured dest — no conflict, entry created | 5 |
+| Module | Assertions | Covers |
+|---|---|---|
+| `cmdline_parser` | 89 | `/D`, `/I`, `/O`, `/S`, `/P` options; sort/placement round-trips; help text |
+| `file_io` | 26 | Path utilities, JSON/log path resolution, file/dir existence, enumeration |
+| `json_parser` | 112 | Default JSON, save/load round-trip, empty/malformed/legacy, GUID + timestamp |
+| `logging_buffer` | 34 | Buffered entries, flush on open/switch/close, discard on switch failure |
+| `queue_manager` | 27 | Prepare/release, dedup, cancel, sidecar, directory move on/off |
+| `preserve_directory_structure` | 37 | Dest path prefixing, nested structure, multiple sources/dests |
+| `create_empty_directories` | 34 | Leaf/nested empty dir detection, mixed content, disabled mode |
+| `copy_vs_move_mode` | 11 | CP vs MV entry creation, mid-session mode change |
+| `settings_json_roundtrip` | 19 | preserve/createEmpty round-trip, defaults, legacy JSON |
+| `find_empty_directories` | 13 | Deep nesting, empty parent/child, multiple empty dirs |
+| `source_dest_conflict_structure` | 4 | File at structured dest (skip), no-conflict cases |
+| `replace_all_conflict` | 12 | ReplaceAll sticky flag scoped to group, reset on new batch |
+| `nested_dest_dir_creation` | 3 | Nested destination directory creation |
+| `delete_empty_directory` | 26 | `IsDirectoryEmpty`, JSON round-trip, worker single-level delete (file drops) |
+| `delete_empty_directory_structure` | 23 | JSON round-trip + legacy key, worker multi-level structure delete (directory drops) |
+| **Total** | **470** | |
 
 ## Integration Test Scenarios
 
@@ -221,7 +133,7 @@ These scenarios require manual execution of the built application.
 1. Open Settings window
 2. Change sort mode to `Added Last`
 3. Change placement to `Lower Right`
-4. Enable directory moves, preserve structure, create empty dirs, sidecar files, and hidden source options
+4. Enable directory moves, delete empty dirs, preserve structure, create empty dirs, sidecar files, and hidden source options
 5. Close and restart the application
 6. Verify all settings are restored
 
@@ -261,6 +173,25 @@ These scenarios require manual execution of the built application.
 6. Verify blank line separates old content from new entries in the new log file
 7. Trigger a switch failure (e.g., select a malformed JSON file)
 8. Verify old log remains open, failure is logged, and no buffer entries appear in any log
+
+### Scenario 12: Delete Empty Directory (single level, file drops)
+
+1. Enable "Delete Empty Directory" in Settings (independent; "Move directories" not required)
+2. Create a directory containing a single file, and drag that file onto a group
+3. Verify the file is moved to the destination and the (now empty) source directory is removed
+4. Repeat with a directory that still contains other files — verify the source directory is NOT removed
+5. Disable "Delete Empty Directory" and repeat step 2 — verify the emptied source directory is left in place
+6. Verify a drive root is never deleted (option is a no-op for files directly under a root)
+
+### Scenario 13: Delete Empty Directory Structure (multi level, directory drops)
+
+1. Enable both "Move directories" and "Delete empty directory Structure" in Settings
+2. Create `TV Sources\Show 1\Season 1\file1.txt` and `TV Sources\Show 1\Season 2\file2.txt`
+3. Drag the directory `Show 1` onto a group
+4. Verify both files are moved to the destination
+5. Verify `Season 1`, `Season 2`, and `Show 1` are all removed (empty structure cleaned up)
+6. Verify `TV Sources` is NOT removed (never deletes above the dropped directory)
+7. Disable "Delete empty directory Structure" and repeat — verify the full source structure is left in place
 
 ## Debug Mode Testing
 

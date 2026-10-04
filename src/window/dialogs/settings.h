@@ -27,10 +27,12 @@ enum PlacementRadio {
 // Checkbox IDs for options
 enum OptionCheck {
     IDM_OPT_DIRECTORY_MOVES = 3020,
+    IDM_OPT_DELETE_EMPTY_DIR_STRUCTURE,
     IDM_OPT_PRESERVE_STRUCTURE,
     IDM_OPT_CREATE_EMPTY_DIRS,
     IDM_OPT_SIDECAR_FILES,
-    IDM_OPT_HIDDEN_SOURCE
+    IDM_OPT_HIDDEN_SOURCE,
+    IDM_OPT_DELETE_EMPTY_DIR
 };
 
 // Button IDs
@@ -61,6 +63,8 @@ private:
     RECT mClientRect;
     AppSettings mSettings;
     bool mAccepted;
+    HWND mDeleteEmptyDirHwnd;
+    HWND mDeleteEmptyDirStructureHwnd;
     HWND mPreserveStructureHwnd;
     HWND mCreateEmptyDirsHwnd;
 };

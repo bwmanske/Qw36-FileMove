@@ -127,7 +127,9 @@ FileMove/
 |   ( ) Lower Left                         Lower Right ( )  |
 |                                                           |
 | Options                                                   |
+|   [ ] Delete Empty Directory                              |
 |   [ ] Move directories with subdirectories and files      |
+|     [ ] Delete empty directory Structure                  |
 |     [ ] Preserve directory structure at destination       |
 |       [ ] Create empty directories                        |
 |   [ ] Create .filemove-queued sidecar files               |
@@ -142,10 +144,21 @@ FileMove/
 - Keep this window small and modal.
 - This window is not resizable. It maintains the size it is created with.
 - Use radio buttons for sort and placement because only one choice is valid in each section.
-- Use independent checkboxes in the `Options` section because each option can be enabled or disabled separately.
-- "Preserve directory structure at destination" is indented under "Move directories..." and is only enabled when "Move directories..." is checked.
-- "Create empty directories" is further indented under "Preserve directory structure..." and is only enabled when "Preserve directory structure..." is checked.
-- Checking a dependent checkbox does NOT change the state of parent checkboxes.
+- The `Options` section uses a parent/child checkbox hierarchy:
+  - "Delete Empty Directory" is independent (not indented), positioned directly above "Move directories...". It is a single-level cleanup for file drops.
+  - "Move directories with subdirectories and files" is the parent.
+  - "Delete empty directory Structure" is a child of "Move directories..." (indented one level). It is a multi-level cleanup for directory drops.
+  - "Preserve directory structure at destination" is a child of "Move directories..." (indented one level) and a sibling of "Delete empty directory Structure".
+  - "Create empty directories" is a child of "Preserve directory structure..." (indented one level under it).
+  - "Create .filemove-queued sidecar files" and "Experimental: mark queued source files as hidden" are independent (not part of the hierarchy).
+- The two directory-cleanup options are independent functions:
+  - "Delete Empty Directory" applies to file drops (deletes the immediate parent of a moved file if empty).
+  - "Delete empty directory Structure" applies to directory drops (deletes the empty structure up to and including the dropped directory, never above it).
+- Parent/child enable/disable rules:
+  - Rule #1: When a parent checkbox is unchecked, its direct child checkboxes are disabled (grayed out) and cannot change state. If a child is grayed out, all further (descendant) child controls under it are also grayed out.
+  - Rule #2: When a parent checkbox is checked, its direct child checkboxes are no longer grayed out and their previous checkbox state is restored. For any newly-enabled child that is itself a parent, Rule #1 is applied to it.
+  - Rule #3: A grayed out (disabled) option is treated as unchecked by the app. On `OK`, any indented option that is grayed out is saved as unchecked, regardless of its visual checkbox state.
+- Checking a child checkbox does NOT change the state of its parent checkbox. A grayed out (disabled) child cannot be interacted with, so it can never change its parent.
 - `OK` saves settings to JSON.
 - `Cancel` closes without saving.
 
@@ -158,7 +171,7 @@ FileMove/
 |                         [128 x 128 image]                 |
 |                                                           |
 | Build Information                                         |
-|   Version: 1.3.6          Built On: 2026-05-09 21:45:00   |
+|   Version: 1.3.7          Built On: 2026-05-09 21:45:00   |
 |   Command Line: -D MV -I WorkGroups                       |
 |                                                           |
 | FileMove is a compact Windows utility for routing files   |
@@ -172,7 +185,7 @@ FileMove/
 
 - `About` is opened from the gear icon button context menu.
 - The top image is centered and uses `FileGroupMover/Assets/Images/about-image.png`.
-- The top section shows build information for Version `1.3.6`.
+- The top section shows build information for Version `1.3.7`.
 - `Version` is left justified and `Built On` is right justified on the same line.
 - The second line shows `Command Line:` followed by any command-line arguments that were specified.
 - The About window uses the application icon.
